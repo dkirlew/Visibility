@@ -226,7 +226,8 @@ def CreateRectangle(height, width):
     ox = xa + (xb - xa)/2
     oy = ya + (yd - ya)/2
 
-    theta = random.randint(0, 90) # rotate no more than 90 degrees to ensure points remain in order of top left, top right, bottom right, bottom left
+    # theta is negative because y is opposite in pygame
+    theta = -1 * random.uniform(0, math.pi/2) # rotate no more than 90 degrees to ensure points remain in order of top left, top right, bottom right, bottom left
 
     x1 = math.cos(theta) * (xa - ox) - math.sin(theta) * (ya - oy) + ox
     y1 = math.sin(theta) * (xa - ox) + math.cos(theta) * (ya - oy) + oy
@@ -236,6 +237,7 @@ def CreateRectangle(height, width):
     y3 = math.sin(theta) * (xc - ox) + math.cos(theta) * (yc - oy) + oy
     x4 = math.cos(theta) * (xd - ox) - math.sin(theta) * (yd - oy) + ox
     y4 = math.sin(theta) * (xd - ox) + math.cos(theta) * (yd - oy) + oy
+
 
     rect_config.append([x1, y1]) #top left
     rect_config.append([x2, y2]) #top right
@@ -343,6 +345,7 @@ def CreateRobotConfig(env_config, height, width, robot_radius, start_config = No
 
     # check if robot config is in collision with obstacles or if it is too close to start config
     if start_config is not None:
+        print "checking goal collisions"
         start_x = start_config[1]
         start_y = start_config[2]
         dist_to_start = dist = numpy.sqrt(numpy.square(x - start_x) + numpy.square(y - start_y))
@@ -351,6 +354,7 @@ def CreateRobotConfig(env_config, height, width, robot_radius, start_config = No
             y = random.randint(0 + robot_radius, height - robot_radius)
             dist_to_start = dist = numpy.sqrt(numpy.square(x - start_x) + numpy.square(y - start_y))
     else: # check if in collision with obstacles
+        print "checking start collisions"
         while CheckCollision(env_config, x, y, robot_radius):
             x = random.randint(0 + robot_radius, width - robot_radius)
             y = random.randint(0 + robot_radius, height - robot_radius)
@@ -383,60 +387,108 @@ def CheckCollision(env_config, x, y, robot_radius):
 
 def CheckRobotRectangleCollision(shape, x, y, robot_radius):
     # Rectangle contain top left, top right, bottom right, and bottom left coordinates    # Line contains start and end coordinate
-    
-    x1 = shape[1][0] + robot_radius # top left x + robot_radius to create buffer
-    y1 = shape[1][1] + robot_radius # top left y + robot_radius to create buffer
-    x2 = shape[2][0] + robot_radius # top right x + robot_radius to create buffer
-    y2 = shape[2][1] + robot_radius # top right y + robot_radius to create buffer
-    x3 = shape[3][0] + robot_radius # bottom right x + robot_radius to create buffer
-    y3 = shape[3][1] + robot_radius # bottom right y + robot_radius to create buffer
-    x4 = shape[4][0] + robot_radius # bottom left x + robot_radius to create buffer
-    y4 = shape[4][1] + robot_radius # bottom left y + robot_radius to create buffer
+    print "rectangle collision"
+    x1 = shape[1][0] # top left x 
+    y1 = -1*(shape[1][1]) # top left y, y is inverted because origin in pygame is top left and origin in regular coordinate system is bottom left
+    x2 = shape[2][0] # top right x 
+    y2 = -1*(shape[2][1]) # top right y, y is inverted because origin in pygame is top left and origin in regular coordinate system is bottom left
+    x3 = shape[3][0] # bottom right x 
+    y3 = -1*(shape[3][1]) # bottom right y , y is inverted because origin in pygame is top left and origin in regular coordinate system is bottom left
+    x4 = shape[4][0] # bottom left x 
+    y4 = -1*(shape[4][1]) # bottom left y, y is inverted because origin in pygame is top left and origin in regular coordinate system is bottom left
+    robot_x = x
+    robot_y = y * -1 # y is inverted because origin in pygame is top left and origin in regular coordinate system is bottom left
 
+
+    # print "robot_x =",robot_x
+    # print "robot_y =",robot_y
+    # print"x1 =",x1
+    # print"y1 =",y1
+    # print"x2 =",x2
+    # print"y2 =",y2
+    # print"x3 =",x3
+    # print"y3 =",y3
+    # print"x4 =",x4
+    # print"y4 =",y4
+
+    # first check if robot is within rectangle
     # http://stackoverflow.com/questions/2752725/finding-whether-a-point-lies-inside-a-rectangle-or-not
     # check if point is to right of LEFT edge of rectangle
     Al = -(y4 - y1)
-    Bl = x4 - y1
-    Cl = -(Al * y1 + Bl * y1)
-    Dl = Al * x + Bl * y + Cl
+    Bl = x4 - x1
+    Cl = -(Al * x1 + Bl * y1)
+    Dl = Al * robot_x + Bl * robot_y + Cl
+    Ml = -Al/Bl
+    # print "Ml:",Ml
+    # print "Dl:",Dl
 
     if Dl == 0: # on the line
         return True
-    if Dl > 0: # lies to the right (might be in collision)
+    if (Dl < 0 and Ml > 0) or (Dl > 0 and Ml < 0): # lies to the right (might be in collision)
         # check if point is to the left of the RIGHT edge of rectangle
         Ar = -(y3 - y2)
         Br = x3 - x2
         Cr = -(Ar * x2 + Br * y2)
-        Dr = Ar * x + Br * y + Cr
+        Dr = Ar * robot_x + Br * robot_y + Cr
+        Mr = -Ar / Br
+        # print "Mr:",Mr
+        # print "Dr:",Dr
 
         if Dr == 0: # on the line
             return True 
         # http://math.stackexchange.com/questions/324589/detecting-whether-a-point-is-above-or-below-a-slope
-        if Dr < 0: # lies to the left
-            # check if the point is below the TOP edge of rectangle
+        if (Dr < 0 and Mr < 0) or (Dr > 0 and Mr > 0): # lies to the left (might be in collision)
+            # check if the point is below the TOP edge of rectangle (keep in mind that the rectangle is now flipped below origin.  This uses the new top of the rectangle)
             At = -(y2 - y1)
             Bt = x2 - x1
             Ct = -(At * x1 + Bt * y1)
-            Dt = At * x + Bt * y + Ct
+            Dt = At * robot_x + Bt * robot_y + Ct
+            # print "Dt:",Dt
+
             if Dt == 0: # on the line
                 return True
-            if Dt < 0: # lies below
+            if Dt < 0: # lies below (might be in collision)
                 # check if point is above the BOTTOM edge of rectangle
-                Ab = -(y4 - y3)
-                Bb = x4 - x3
-                Cb = -(Ab * x3 + Bb * y3)
-                Db = Ab * x + Bb * y + Cb
+                Ab = -(y4 - y1)
+                Bb = x4 - x1
+                Cb = -(Ab * x1 + Bb * y1)
+                Db = Ab * robot_x + Bb * robot_y + Cb
+                # print "Db:",Db
                 if Db >= 0: # on or above line
                     return True
 
     # maybe do this instead? http://www.geeksforgeeks.org/how-to-check-if-a-given-point-lies-inside-a-polygon/ 
 
+    # next check if robot is within robot_radius of edge of rectangle
+    # https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
+
+    dist_left_side = DistPointToLine(robot_x, robot_y, x1, y1, x4, y4)
+    dist_right_side = DistPointToLine(robot_x, robot_y, x2, y2, x3, y3)
+    dist_top_side = DistPointToLine(robot_x, robot_y, x3, y3, x4, y4)
+    dist_bottom_side = DistPointToLine(robot_x, robot_y, x1, y1, x2, y2)
+
+    # print "dist_left_side:",dist_left_side
+    # print "dist_right_side:",dist_right_side
+    # print "dist_top_side:",dist_top_side
+    # print "dist_bottom_side:",dist_bottom_side
+
+    if dist_left_side < robot_radius or dist_right_side < robot_radius or dist_top_side < robot_radius or dist_bottom_side < robot_radius:
+        return True
+
+
     return False
+
+def DistPointToLine(point_x, point_y, line1_x, line1_y, line2_x, line2_y):
+    numerator = abs((line2_y - line1_y) * point_x - (line2_x - line1_x) * point_y + line2_x * line1_y - line2_y * line1_x)
+    denominator = numpy.sqrt(numpy.square(line2_x - line1_x) + numpy.square(line2_y - line1_y))
+    dist = numerator / denominator
+
+    return dist
 
 
 def CheckRobotLineCollision(shape, x, y, robot_radius):
     # Line contains start and end coordinate
-    
+    print "line collision"
     sx = shape[1][0] # start x
     sy = shape[1][1] # start y
     ex = shape[2][0] # end x

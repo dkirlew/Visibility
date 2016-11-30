@@ -249,12 +249,6 @@ class PlanningEnvironment(object):
         start_theta_x = int((robot_radius / 2) * math.cos(start_theta)) + start_robot_x
         start_theta_y = -1 * int((robot_radius / 2) * math.sin(start_theta)) + start_robot_y # inverting y because origin for pygame is at top left, origin in coordinate system is in bottom left
 
-        print "start_robot_x:",start_robot_x
-        print "start_robot_y:",start_robot_y
-        print "start_theta:",start_theta
-        print "start_theta_x:",start_theta_x
-        print "start_theta_y:",start_theta_y
-
 
         pygame.draw.circle(self.background, self.GREEN, (start_robot_x, start_robot_y), robot_radius)
         pygame.draw.circle(self.background, self.BLACK, (start_theta_x, start_theta_y), robot_radius/4)
@@ -268,13 +262,6 @@ class PlanningEnvironment(object):
         # http://math.libretexts.org/Core/Calculus/Precalculus/Chapter_5%3A_Trigonometric_Functions_of_Angles/5.3_Points_on_Circles_using_Sine_and_Cosine
         goal_theta_x = int((robot_radius / 2) * math.cos(goal_theta)) + goal_robot_x
         goal_theta_y = -1 * int((robot_radius / 2) * math.sin(goal_theta)) + goal_robot_y # inverting y because origin for pygame is at top left, origin in coordinate system is in bottom left
-
-        print "goal_robot_x:",goal_robot_x
-        print "goal_robot_y:",goal_robot_y
-        print "goal_theta:",goal_theta
-        print "start_theta_x:",start_theta_x
-        print "goal_theta_y:",goal_theta_y
-
 
         pygame.draw.circle(self.background, self.RED, (goal_robot_x, goal_robot_y), robot_radius)
         pygame.draw.circle(self.background, self.BLACK, (goal_theta_x, goal_theta_y), robot_radius/4)
