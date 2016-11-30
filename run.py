@@ -496,24 +496,19 @@ def CheckRobotLineCollision(shape, x, y, robot_radius):
 
     # create rectangle by padding line with robot_radius.  Check for collision between new rectangle and robot
 
-    rect_config = ["R"]
-    if sx == min(sx, ex): # if start of line is the left-most point, save as left x and y, save end as right x and y
-        lx = sx
-        ly = sy
-        rx = ex
-        ry = ey
-    else: # do opposite
-        lx = ex
-        ly = ey
-        rx = sx
-        ry = sy
 
-    rect_config.append([lx - robot_radius, ly - robot_radius]) # top left
-    rect_config.append([rx + robot_radius, ry - robot_radius]) # top right
-    rect_config.append([rx + robot_radius, ry + robot_radius]) # bottom right
-    rect_config.append([lx + robot_radius, ly + robot_radius]) # bottom left
+    
+    dist = DistPointToLine(x, y, sx, sy, ex, ey)
 
-    return CheckRobotRectangleCollision(rect_config, x, y, robot_radius)
+    if dist < robot_radius: # inside bar around line (line extends between infinities)
+        dist_start = numpy.sqrt(numpy.square(sx - x) + numpy.square(sy - y))
+        dist_end = numpy.sqrt(numpy.square(ex - x) + numpy.square(ey - y))
+        if (x > min(sx, ex) and x < max(sx, ex)) or (y > min(sy, ey) and y < max(sy, ey)):
+            return True
+        elif dist_start < robot_radius or dist_end < robot_radius:
+            return True
+
+    return False
 
 
 def CheckRobotCircleCollision(shape, x, y, robot_radius):
