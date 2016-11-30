@@ -165,12 +165,14 @@ class PlanningEnvironment(object):
         return path
 
 
-    def InitializePlot(self, env_config, width, height):
-        # R = Rectangle, L = Line, C = Circle, A = Arc
-        # Rectangles contain top left and bottom right coordinate
-        # Line contains start and end coordinate
-        # Circle contains coordinate of center and radius
-        # Arc contains coordinate of center, width and height of rectangle containing the arc, start angle, and stop angle.  When added to env_config, Arc will also contain coordinate of center of subtended arc
+    def InitializePlot(self, env_config, start_config, goal_config, width, height, robot_radius):
+    # R = Rectangle, L = Line, C = Circle, A = Arc, S = Start Config, G = Goal Config
+    # Rectangle contain top left, top right, bottom right, and bottom left coordinates
+    # Line contains start and end coordinate
+    # Circle contains coordinate of center and radius
+    # Arc contains coordinate of center, width and height of rectangle containing the arc, start angle, and stop angle.  When added to env_config, Arc will also contain coordinate of center of subtended arc
+    # Start config contains x and y coordinates of robot and theta of robot config
+    # Goal config contains x and y coordinates of robot and theta of robot config
 
         pygame.init()
         self.screen = pygame.display.set_mode((width, height), pygame.DOUBLEBUF)
@@ -221,7 +223,7 @@ class PlanningEnvironment(object):
                 pygame.draw.circle(self.background, self.RED, (cx, cy), radius)
 
             elif obstacle[0].lower() == "a":
-                print "Arc"
+                print "arc"
 
                 x = int(obstacle[1][0]) # top left x
                 y = int(obstacle[1][1]) # top left y
@@ -233,8 +235,49 @@ class PlanningEnvironment(object):
                 pygame.draw.arc(self.background, self.BLUE, [x, y, radius, radius], start_angle, stop_angle)
 
             else:
-                print "Unknown descriptor \"" + obstacle[0] + "\".  Expecting R, L, C, or A.  Exiting"
+                print "Unknown descriptor \"" + obstacle[0] + "\".  Expecting R, L, C, A, S, or G.  Exiting"
                 exit(0)
+
+
+        print "robot start config"
+        start_robot_x = int(start_config[1]) # robot x
+        start_robot_y = int(start_config[2]) # robot y
+        start_theta = float(start_config[3])# * 180 / math.pi
+
+        # find where ID dot of robot should be to indicate orientation
+        # http://math.libretexts.org/Core/Calculus/Precalculus/Chapter_5%3A_Trigonometric_Functions_of_Angles/5.3_Points_on_Circles_using_Sine_and_Cosine
+        start_theta_x = int((robot_radius / 2) * math.cos(start_theta)) + start_robot_x
+        start_theta_y = -1 * int((robot_radius / 2) * math.sin(start_theta)) + start_robot_y # inverting y because origin for pygame is at top left, origin in coordinate system is in bottom left
+
+        print "start_robot_x:",start_robot_x
+        print "start_robot_y:",start_robot_y
+        print "start_theta:",start_theta
+        print "start_theta_x:",start_theta_x
+        print "start_theta_y:",start_theta_y
+
+
+        pygame.draw.circle(self.background, self.GREEN, (start_robot_x, start_robot_y), robot_radius)
+        pygame.draw.circle(self.background, self.BLACK, (start_theta_x, start_theta_y), robot_radius/4)
+
+        print "robot goal config"
+        goal_robot_x = int(goal_config[1]) # robot x
+        goal_robot_y = int(goal_config[2]) # robot y
+        goal_theta = float(goal_config[3])# * 180 / math.pi
+
+        # find where ID dot of robot should be to indicate orientation
+        # http://math.libretexts.org/Core/Calculus/Precalculus/Chapter_5%3A_Trigonometric_Functions_of_Angles/5.3_Points_on_Circles_using_Sine_and_Cosine
+        goal_theta_x = int((robot_radius / 2) * math.cos(goal_theta)) + goal_robot_x
+        goal_theta_y = -1 * int((robot_radius / 2) * math.sin(goal_theta)) + goal_robot_y # inverting y because origin for pygame is at top left, origin in coordinate system is in bottom left
+
+        print "goal_robot_x:",goal_robot_x
+        print "goal_robot_y:",goal_robot_y
+        print "goal_theta:",goal_theta
+        print "start_theta_x:",start_theta_x
+        print "goal_theta_y:",goal_theta_y
+
+
+        pygame.draw.circle(self.background, self.RED, (goal_robot_x, goal_robot_y), robot_radius)
+        pygame.draw.circle(self.background, self.BLACK, (goal_theta_x, goal_theta_y), robot_radius/4)
                 
 
         running = True
