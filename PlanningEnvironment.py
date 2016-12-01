@@ -184,6 +184,34 @@ class PlanningEnvironment(object):
         self.fps = 30
         self.playtime = 0.0
 
+        print "robot start config"
+        start_robot_x = int(start_config[1]) # robot x
+        start_robot_y = int(start_config[2]) # robot y
+        start_theta = float(start_config[3])# * 180 / math.pi
+
+        # find where ID dot of robot should be to indicate orientation
+        # http://math.libretexts.org/Core/Calculus/Precalculus/Chapter_5%3A_Trigonometric_Functions_of_Angles/5.3_Points_on_Circles_using_Sine_and_Cosine
+        start_theta_x = int((robot_radius / 2) * math.cos(start_theta)) + start_robot_x
+        start_theta_y = -1 * int((robot_radius / 2) * math.sin(start_theta)) + start_robot_y # inverting y because origin for pygame is at top left, origin in coordinate system is in bottom left
+
+
+        pygame.draw.circle(self.background, self.GREEN, (start_robot_x, start_robot_y), robot_radius)
+        pygame.draw.circle(self.background, self.BLACK, (start_theta_x, start_theta_y), robot_radius/4)
+
+        print "robot goal config"
+        goal_robot_x = int(goal_config[1]) # robot x
+        goal_robot_y = int(goal_config[2]) # robot y
+        goal_theta = float(goal_config[3])# * 180 / math.pi
+
+        # find where ID dot of robot should be to indicate orientation
+        # http://math.libretexts.org/Core/Calculus/Precalculus/Chapter_5%3A_Trigonometric_Functions_of_Angles/5.3_Points_on_Circles_using_Sine_and_Cosine
+        goal_theta_x = int((robot_radius / 2) * math.cos(goal_theta)) + goal_robot_x
+        goal_theta_y = -1 * int((robot_radius / 2) * math.sin(goal_theta)) + goal_robot_y # inverting y because origin for pygame is at top left, origin in coordinate system is in bottom left
+
+        pygame.draw.circle(self.background, self.RED, (goal_robot_x, goal_robot_y), robot_radius)
+        pygame.draw.circle(self.background, self.BLACK, (goal_theta_x, goal_theta_y), robot_radius/4)
+                
+
 
         # Show all obstacles in environment
         for obstacle in env_config:
@@ -227,45 +255,19 @@ class PlanningEnvironment(object):
 
                 x = int(obstacle[1][0]) # top left x
                 y = int(obstacle[1][1]) # top left y
-                radius = int(obstacle[2])
+                diameter = int(obstacle[2]) * 2 # stored as radius
                 start_angle = obstacle[3] 
                 stop_angle = obstacle[4] 
 
                 # pygame.draw.arc(self.background, self.BLUE, [x, y, awidth, aheight], start_angle, stop_angle)
-                pygame.draw.arc(self.background, self.BLUE, [x, y, radius, radius], start_angle, stop_angle)
+                pygame.draw.arc(self.background, self.BLUE, [x, y, diameter, diameter], start_angle, stop_angle)
 
             else:
                 print "Unknown descriptor \"" + obstacle[0] + "\".  Expecting R, L, C, A, S, or G.  Exiting"
                 exit(0)
 
 
-        print "robot start config"
-        start_robot_x = int(start_config[1]) # robot x
-        start_robot_y = int(start_config[2]) # robot y
-        start_theta = float(start_config[3])# * 180 / math.pi
-
-        # find where ID dot of robot should be to indicate orientation
-        # http://math.libretexts.org/Core/Calculus/Precalculus/Chapter_5%3A_Trigonometric_Functions_of_Angles/5.3_Points_on_Circles_using_Sine_and_Cosine
-        start_theta_x = int((robot_radius / 2) * math.cos(start_theta)) + start_robot_x
-        start_theta_y = -1 * int((robot_radius / 2) * math.sin(start_theta)) + start_robot_y # inverting y because origin for pygame is at top left, origin in coordinate system is in bottom left
-
-
-        pygame.draw.circle(self.background, self.GREEN, (start_robot_x, start_robot_y), robot_radius)
-        pygame.draw.circle(self.background, self.BLACK, (start_theta_x, start_theta_y), robot_radius/4)
-
-        print "robot goal config"
-        goal_robot_x = int(goal_config[1]) # robot x
-        goal_robot_y = int(goal_config[2]) # robot y
-        goal_theta = float(goal_config[3])# * 180 / math.pi
-
-        # find where ID dot of robot should be to indicate orientation
-        # http://math.libretexts.org/Core/Calculus/Precalculus/Chapter_5%3A_Trigonometric_Functions_of_Angles/5.3_Points_on_Circles_using_Sine_and_Cosine
-        goal_theta_x = int((robot_radius / 2) * math.cos(goal_theta)) + goal_robot_x
-        goal_theta_y = -1 * int((robot_radius / 2) * math.sin(goal_theta)) + goal_robot_y # inverting y because origin for pygame is at top left, origin in coordinate system is in bottom left
-
-        pygame.draw.circle(self.background, self.RED, (goal_robot_x, goal_robot_y), robot_radius)
-        pygame.draw.circle(self.background, self.BLACK, (goal_theta_x, goal_theta_y), robot_radius/4)
-                
+        
 
         running = True
         while running:

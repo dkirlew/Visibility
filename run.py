@@ -150,7 +150,7 @@ def parse_domain(domain_file_name, height, width, robot_radius):
         newfile = open(name, "w") #w = write access
 
         for i in range(difficulty*2): #twice as many shapes as the difficulty
-            shape = random.randint(1,4)%(difficulty + 1)
+            shape = 4 #random.randint(1,4)%(difficulty + 1)
 
             if shape == 0: #rectangle
                 shape_env_config = CreateRectangle(height, width)
@@ -315,18 +315,24 @@ def CreateArc(height, width):
         radius = random.randint(width/10, width/4) # TODO: arbitrary
 
 
-    start_angle = round(random.uniform(0, 2*math.pi), 2)
-    stop_angle = round(random.uniform(0, 2*math.pi), 2)
+    angle1 = round(random.uniform(0, 2*math.pi), 2)
+    angle2 = round(random.uniform(0, 2*math.pi), 2)
 
     # ensures that angles are unique and arc will be greater than a half circle to create pockets/local minima
-    while abs(stop_angle - start_angle) < math.pi or start_angle == stop_angle: # TODO: arbitrary:
-        start_angle = round(random.uniform(0, 2*math.pi), 2)
-        stop_angle = round(random.uniform(0, 2*math.pi), 2)
+    while abs(angle2 - angle1) < math.pi or angle1 == angle2: # TODO: arbitrary:
+        angle1 = round(random.uniform(0, 2*math.pi), 2)
+        angle2 = round(random.uniform(0, 2*math.pi), 2)
+
+    # because start is min and stop is max, most arcs have openings towards the right.  by shifting both start and stop
+    # angles by X amount, this rotates the opening of the arc
+    angle_shift = round(random.uniform(0, 2*math.pi - max(angle1, angle2)), 2)
+    start_angle = (min(angle1, angle2) + angle_shift) % (2 * math.pi)
+    stop_angle = (max(angle1, angle2) + angle_shift) % (2 * math.pi)
 
     arc_config.append([x, y])
     arc_config.append(radius)
-    arc_config.append(min(start_angle, stop_angle)) # start angle
-    arc_config.append(max(start_angle, stop_angle)) # stop angle
+    arc_config.append(start_angle) # start angle
+    arc_config.append(stop_angle) # stop angle
 
     return arc_config
 
@@ -342,6 +348,7 @@ def CreateRobotConfig(env_config, height, width, robot_radius, start_config = No
     x = random.randint(0 + robot_radius, width - robot_radius)
     y = random.randint(0 + robot_radius, height - robot_radius)
     theta = round(random.uniform(0, 2*math.pi), 2)
+    numTries = 0
 
     # check if robot config is in collision with obstacles or if it is too close to start config
     if start_config is not None:
@@ -349,18 +356,22 @@ def CreateRobotConfig(env_config, height, width, robot_radius, start_config = No
         start_x = start_config[1]
         start_y = start_config[2]
         dist_to_start = dist = numpy.sqrt(numpy.square(x - start_x) + numpy.square(y - start_y))
-        while CheckCollision(env_config, x, y, robot_radius) or dist_to_start < height/10: #TODO: arbitrary
+        while (CheckCollision(env_config, x, y, robot_radius) or dist_to_start < height/10):# and numTries < 10: #TODO: arbitrary
             x = random.randint(0 + robot_radius, width - robot_radius)
             y = random.randint(0 + robot_radius, height - robot_radius)
             dist_to_start = dist = numpy.sqrt(numpy.square(x - start_x) + numpy.square(y - start_y))
+            numTries+=1
     else: # check if in collision with obstacles
         print "checking start collisions"
-        while CheckCollision(env_config, x, y, robot_radius):
+        while CheckCollision(env_config, x, y, robot_radius):# and numTries < 10:
             x = random.randint(0 + robot_radius, width - robot_radius)
             y = random.randint(0 + robot_radius, height - robot_radius)
+            numTries+=1
     config.append(x)
     config.append(y)
     config.append(theta)
+    if numTries >= 9:
+        print "HEY NUMTRIES MAXED OUT ------------------------------------------------"
     return config
 
 
@@ -529,41 +540,63 @@ def CheckRobotCircleCollision(shape, x, y, robot_radius):
 def CheckRobotArcCollision(shape, x, y, robot_radius):
     # Arc contains coordinate of center, width and height of rectangle containing the arc, start angle, and stop angle.  When added to env_config, Arc will also contain coordinate of center of subtended arc
     
-    arc_x = int(shape[1][0]) # center coordinate x
-    arc_y = int(shape[1][1]) # center coordinate y
+    robot_x = x
+    robot_y = -1 * y
+
     shape_radius = int(shape[2])
     start_angle = shape[3]
     stop_angle = shape[4]
 
-    #arc_length = radius * abs(start_angle - stop_angle)
+    arc_x = int(shape[1][0]) + shape_radius # center coordinate x (shape contains top left coordinate.  adding shape_radius creates arc origin/center)
+    arc_y = -1 * (int(shape[1][1]) + shape_radius) # center coordinate y (shape contains top left coordinate.  adding shape_radius creates arc origin/center)
 
-    delta_theta = 2*math.sin((robot_radius/2)/shape_radius)
+    delta_theta = 2*math.sin(float(robot_radius/2)/shape_radius)
     new_start_angle = start_angle - delta_theta
     new_stop_angle = stop_angle + delta_theta
 
-    dist = numpy.sqrt(numpy.square(arc_x - x) + numpy.square(arc_y - y))
+    dist = numpy.sqrt(float(numpy.square(arc_x - robot_x) + numpy.square(arc_y - robot_y)))
+
+    # print "shape_radius:",shape_radius
+    # print "start_angle:",start_angle
+    # print "stop_angle:",stop_angle
+    # print "arc_x:",arc_x
+    # print "arc_y:",arc_y
+    # print "robot x:",robot_x
+    # print "robot y:",robot_y
+    # print "dist:",dist
 
     # check if robot is in "crust" of arc
-    if dist < (shape_radius + robot_radius) or dist > (shape_radius - robot_radius):
+    if dist < (shape_radius + robot_radius) and dist > (shape_radius - robot_radius):
         # check if robot is inside of "slice" of arc or outside "pie" of arc (slice is empty portion of arc, pie is full arc portion)
 
         # calculate angle from center of arc to robot
-        robot_theta = math.atan((x - arc_x) / (y - arc_y)) # degrees
-        robot_theta = robot_theta * math.pi / 180 # degrees to radians
+        if arc_y != robot_y:
+            robot_theta = math.atan(float(robot_y - arc_y) / float(robot_x - arc_x)) # degrees
+        else:
+            if robot_x > arc_x: #robot is to right of arc
+                robot_theta = 0
+            elif robot_x < arc_x: # robot is to left of arc
+                robot_theta = math.pi
+            else: # same center
+                if robot_radius >= shape_radius: # robot is huge and eating the arc
+                    print "robot eating arc"
+                    return True
+                else: # robot fits in arc
+                    return False
 
         # theta is between -pi/4 and pi/4.  need to change to be between 0 and 2pi
-        if x < arc_x: # quadrant 2 and 3
+        if robot_x < arc_x: # quadrant 2 and 3
             robot_theta = robot_theta + math.pi
-        elif y < arc_y: # quadrant 4
+        elif robot_y < arc_y: # quadrant 4
             robot_theta = robot_theta + 2*math.pi
 
-        if start_angle < math.pi and stop_angle > math.pi: # if angle 0 bisects arc slice
-            if robot_theta <= start_angle or robot_theta >= stop_angle: # if in slice
+        if new_start_angle < math.pi and new_stop_angle > math.pi: # if angle 0 bisects arc slice
+            if robot_theta <= new_start_angle or robot_theta >= new_stop_angle: # if in slice
                 return False 
             else:
                 return True
         else: # normal case
-            if robot_theta >= stop_angle and robot_theta <= start_angle: # in slice
+            if robot_theta >= new_stop_angle and robot_theta <= new_start_angle: # in slice
                 return False
             else:
                 return True
