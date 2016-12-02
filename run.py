@@ -12,12 +12,16 @@ from PlanningEnvironment import PlanningEnvironment
 # from VRRTPlanner import VRRTPlanner
 # from VPRMPlanner import VPRMPlanner
 
-def main(planner, planning_env, visualize, output, domain):
-    height = 1000
-    width = 1000
-    robot_radius = 50
+height = 1000
+width = 1000
+robot_radius = 50
 
-    env_config, start_config, goal_config = parse_domain(domain, height, width, robot_radius)#numpy.array(robot.GetCurrentConfiguration())
+def main(planner, planning_env, visualize, output, domain):
+    global height
+    global width
+    global robot_radius
+
+    env_config, start_config, goal_config = parse_domain(domain)#numpy.array(robot.GetCurrentConfiguration())
     print "env_config:"
     for config in env_config:
         print str(config)
@@ -37,7 +41,7 @@ def main(planner, planning_env, visualize, output, domain):
 
 
 #returns env_config list = [name of env (file name), [shape1 type, shape1 info 1, ...], [shape2 type, shape2 info 1, ....], ...]
-def parse_domain(domain_file_name, height, width, robot_radius):
+def parse_domain(domain_file_name):
     # R = Rectangle, L = Line, C = Circle, A = Arc, S = Start Config, G = Goal Config
     # Rectangle contain top left, top right, bottom right, and bottom left coordinates    # Line contains start and end coordinate
     # Line contains start and end coordinate
@@ -45,8 +49,9 @@ def parse_domain(domain_file_name, height, width, robot_radius):
     # Arc contains coordinate of center, width and height of rectangle containing the arc, start angle, and stop angle.  When added to env_config, Arc will also contain coordinate of center of subtended arc
     # Start config contains x and y coordinates of robot and theta of robot config
     # Goal config contains x and y coordinates of robot and theta of robot config
-
-    #TODO: add/prase start and goal configs!! (x,y,theta)
+    global height
+    global width
+    global robot_radius
 
     env_config = []
     robot_start_config = []
@@ -150,19 +155,19 @@ def parse_domain(domain_file_name, height, width, robot_radius):
         newfile = open(name, "w") #w = write access
 
         for i in range(difficulty*2): #twice as many shapes as the difficulty
-            shape = 4 #random.randint(1,4)%(difficulty + 1)
+            shape = random.randint(1,4)%(difficulty + 1)
 
             if shape == 0: #rectangle
-                shape_env_config = CreateRectangle(height, width)
+                shape_env_config = CreateRectangle()
 
             elif shape == 1: #line
-                shape_env_config = CreateLine(height, width)
+                shape_env_config = CreateLine()
 
             elif shape == 2: #circle
-                shape_env_config = CreateCircle(height, width)
+                shape_env_config = CreateCircle()
 
             else: #arc
-                shape_env_config = CreateArc(height, width)
+                shape_env_config = CreateArc()
 
             # TODO: check that shape being added doesn't intersect with existing shapes
             env_config.append(shape_env_config)
@@ -172,8 +177,8 @@ def parse_domain(domain_file_name, height, width, robot_radius):
                 newfile.write(str(config) + "|")
             newfile.write("\n")
 
-        robot_start_config = CreateRobotConfig(env_config, height, width, robot_radius) # start_config
-        robot_goal_config = CreateRobotConfig(env_config, height, width, robot_radius, robot_start_config) # goal_config
+        robot_start_config = CreateRobotConfig(env_config) # start_config
+        robot_goal_config = CreateRobotConfig(env_config, robot_start_config) # goal_config
         for config in robot_start_config:
             newfile.write(str(config) + "|")
         newfile.write("\n")
@@ -186,9 +191,12 @@ def parse_domain(domain_file_name, height, width, robot_radius):
     return env_config, robot_start_config, robot_goal_config
 
 
-def CreateRectangle(height, width):
+def CreateRectangle():
     # Rectangle contain top left, top right, bottom right, and bottom left coordinates
-    
+    global height
+    global width
+    global robot_radius
+
     rect_config = ["R"]
     x1 = random.randint(0, width)
     x2 = random.randint(0, width)
@@ -247,9 +255,12 @@ def CreateRectangle(height, width):
     return rect_config
 
 
-def CreateLine(height, width):
+def CreateLine():
     # Line contains start and end coordinate
-    
+    global height
+    global width
+    global robot_radius
+
     line_config = ["L"]
     x1 = random.randint(0, width)
     y1 = random.randint(0, height)
@@ -281,8 +292,11 @@ def CreateLine(height, width):
 
     return line_config
 
-def CreateCircle(height, width):
+def CreateCircle():
     # Circle contains coordinate of center and radius
+    global height
+    global width
+    global robot_radius
     
     circle_config = ["C"]
     cx1 = random.randint(0, width)
@@ -300,8 +314,11 @@ def CreateCircle(height, width):
 
     return circle_config
 
-def CreateArc(height, width):
+def CreateArc():
     # Arc contains coordinate of center, width and height of rectangle containing the arc, start angle, and stop angle.  When added to env_config, Arc will also contain coordinate of center of subtended arc
+    global height
+    global width
+    global robot_radius
     
     arc_config = ["A"]
     x = random.randint(0, width) # left coord of square that contains arc
@@ -338,8 +355,11 @@ def CreateArc(height, width):
     return arc_config
 
 
-def CreateRobotConfig(env_config, height, width, robot_radius, start_config = None):
+def CreateRobotConfig(env_config, start_config = None):
     # Robot config contains x and y coordinates of robot and theta of robot config
+    global height
+    global width
+    global robot_radius
     
     if start_config is None:
         config = ["S"] # start
@@ -357,14 +377,14 @@ def CreateRobotConfig(env_config, height, width, robot_radius, start_config = No
         start_x = start_config[1]
         start_y = start_config[2]
         dist_to_start = dist = numpy.sqrt(numpy.square(x - start_x) + numpy.square(y - start_y))
-        while (CheckCollision(env_config, x, y, robot_radius) or dist_to_start < height/10):# and numTries < 10: #TODO: arbitrary
+        while (CheckCollision(env_config, x, y) or dist_to_start < height/10):# and numTries < 10: #TODO: arbitrary
             x = random.randint(0 + robot_radius, width - robot_radius)
             y = random.randint(0 + robot_radius, height - robot_radius)
             dist_to_start = dist = numpy.sqrt(numpy.square(x - start_x) + numpy.square(y - start_y))
             numTries+=1
     else: # check if in collision with obstacles
         print "checking start collisions"
-        while CheckCollision(env_config, x, y, robot_radius):# and numTries < 10:
+        while CheckCollision(env_config, x, y):# and numTries < 10:
             x = random.randint(0 + robot_radius, width - robot_radius)
             y = random.randint(0 + robot_radius, height - robot_radius)
             numTries+=1
@@ -376,19 +396,23 @@ def CreateRobotConfig(env_config, height, width, robot_radius, start_config = No
     return config
 
 
-def CheckCollision(env_config, x, y, robot_radius):
+def CheckCollision(env_config, x, y):
+    global height
+    global width
+    global robot_radius
+    
     for shape in env_config:
         if shape[0].lower() == "r":
-            if CheckRobotRectangleCollision(shape, x, y, robot_radius):
+            if CheckRobotRectangleCollision(shape, x, y):
                 return True
         elif shape[0].lower() == "l":
-            if CheckRobotLineCollision(shape, x, y, robot_radius):
+            if CheckRobotLineCollision(shape, x, y):
                 return True
         elif shape[0].lower() == "c":
-            if CheckRobotCircleCollision(shape, x, y, robot_radius):
+            if CheckRobotCircleCollision(shape, x, y):
                 return True
         elif shape[0].lower() == "a":
-            if CheckRobotArcCollision(shape, x, y, robot_radius):
+            if CheckRobotArcCollision(shape, x, y):
                 return True
         else:
             print "Error checking collision for shape type \"" + shape[0] + "\".  Expecting R, L, C, or A.  Exiting."
@@ -397,8 +421,12 @@ def CheckCollision(env_config, x, y, robot_radius):
     return False
 
 
-def CheckRobotRectangleCollision(shape, x, y, robot_radius):
+def CheckRobotRectangleCollision(shape, x, y):
     # Rectangle contain top left, top right, bottom right, and bottom left coordinates    # Line contains start and end coordinate
+    global height
+    global width
+    global robot_radius
+    
     print "rectangle collision"
     x1 = shape[1][0] # top left x 
     y1 = -1*(shape[1][1]) # top left y, y is inverted because origin in pygame is top left and origin in regular coordinate system is bottom left
@@ -498,8 +526,12 @@ def DistPointToLine(point_x, point_y, line1_x, line1_y, line2_x, line2_y):
     return dist
 
 
-def CheckRobotLineCollision(shape, x, y, robot_radius):
+def CheckRobotLineCollision(shape, x, y):
     # Line contains start and end coordinate
+    global height
+    global width
+    global robot_radius
+    
     print "line collision"
     sx = shape[1][0] # start x
     sy = shape[1][1] # start y
@@ -523,8 +555,11 @@ def CheckRobotLineCollision(shape, x, y, robot_radius):
     return False
 
 
-def CheckRobotCircleCollision(shape, x, y, robot_radius):
+def CheckRobotCircleCollision(shape, x, y):
     # Circle contains coordinate of center and radius
+    global height
+    global width
+    global robot_radius
     
     cx = int(shape[1][0]) # center x
     cy = int(shape[1][1])# center y
@@ -538,8 +573,11 @@ def CheckRobotCircleCollision(shape, x, y, robot_radius):
     return False
 
 
-def CheckRobotArcCollision(shape, x, y, robot_radius):
+def CheckRobotArcCollision(shape, x, y):
     # Arc contains coordinate of center, width and height of rectangle containing the arc, start angle, and stop angle.  When added to env_config, Arc will also contain coordinate of center of subtended arc
+    global height
+    global width
+    global robot_radius
     
     robot_x = x
     robot_y = -1 * y
