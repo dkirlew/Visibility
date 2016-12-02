@@ -304,12 +304,13 @@ def CreateArc(height, width):
     # Arc contains coordinate of center, width and height of rectangle containing the arc, start angle, and stop angle.  When added to env_config, Arc will also contain coordinate of center of subtended arc
     
     arc_config = ["A"]
-    x = random.randint(0, width)
-    y = random.randint(0, height)
+    x = random.randint(0, width) # left coord of square that contains arc
+    y = random.randint(0, height) # top coord of square that contains arc
     radius = random.randint(width/10, width/4) # TODO: arbitrary
 
     # radius is too big or center coordinates too close to edge, so re-roll
-    while (x + radius) > width or (x - radius) < 0 or (y + radius) > height or (y - radius) < 0:
+    # keep in mind, center of circle is at (x + radius, y + radius)
+    while (x + 2 * radius) > width or (y + 2 * radius) > height:
         x = random.randint(0, width)
         y = random.randint(0, height)
         radius = random.randint(width/10, width/4) # TODO: arbitrary
@@ -325,7 +326,7 @@ def CreateArc(height, width):
 
     # because start is min and stop is max, most arcs have openings towards the right.  by shifting both start and stop
     # angles by X amount, this rotates the opening of the arc
-    angle_shift = round(random.uniform(0, 2*math.pi - max(angle1, angle2)), 2)
+    angle_shift = round(random.uniform(0, 2*math.pi), 2)
     start_angle = (min(angle1, angle2) + angle_shift) % (2 * math.pi)
     stop_angle = (max(angle1, angle2) + angle_shift) % (2 * math.pi)
 

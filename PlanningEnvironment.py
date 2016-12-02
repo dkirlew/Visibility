@@ -259,8 +259,11 @@ class PlanningEnvironment(object):
                 start_angle = obstacle[3] 
                 stop_angle = obstacle[4] 
 
-                # pygame.draw.arc(self.background, self.BLUE, [x, y, awidth, aheight], start_angle, stop_angle)
-                pygame.draw.arc(self.background, self.BLUE, [x, y, diameter, diameter], start_angle, stop_angle)
+                if start_angle < stop_angle: # if the circle does not wrap around the origin
+                    pygame.draw.arc(self.background, self.BLUE, [x, y, diameter, diameter], start_angle, stop_angle)
+                else: # circle wraps around origin: draw arc from 0 to stop_angle and from start_angle to 2*pi
+                    pygame.draw.arc(self.background, self.BLUE, [x, y, diameter, diameter], 0, stop_angle, 4)
+                    pygame.draw.arc(self.background, self.BLUE, [x, y, diameter, diameter], start_angle, 2*math.pi, 4)
 
             else:
                 print "Unknown descriptor \"" + obstacle[0] + "\".  Expecting R, L, C, A, S, or G.  Exiting"
