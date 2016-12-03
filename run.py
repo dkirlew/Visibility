@@ -611,7 +611,7 @@ def CheckRobotArcCollision(shape, x, y):
 
         # calculate angle from center of arc to robot
         if arc_y != robot_y:
-            robot_theta = math.atan(float(robot_y - arc_y) / float(robot_x - arc_x)) # degrees
+            robot_theta = math.atan(float(robot_y - arc_y) / float(robot_x - arc_x)) # radians
         else:
             if robot_x > arc_x: #robot is to right of arc
                 robot_theta = 0

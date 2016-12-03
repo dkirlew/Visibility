@@ -2,6 +2,10 @@
 
 import argparse, numpy, openravepy, time, math, random, ast
 
+from collections import defaultdict
+from heapq import heappop, heappush
+import heap
+
 class VisibilityPlanner(object):
 
 	def __init__(self, planning_env, visualize, width, height, robot_radius):
@@ -14,14 +18,24 @@ class VisibilityPlanner(object):
 
 	def Plan(env_config, start_config, goal_config):
 		Vertices = self.GetVertices(env_config, start_config, goal_config)
-		Edges = None
+		Edges = {}
 		for vertex in Vertices: 
 			W = self.VisibleVertices(vertex, env_config, start_config, goal_config)
 			for w in W:
-				#Add [w, v]?
-				Edges.append([vertex, w])
+				if vertex in Edges:
+					Edges[vertex].append(w)
+				else:
+					Edges[vertex] = [w]
 
-		return Vertices, Edges
+				if w in Edges:
+					Edges[w].append(vertex)
+				else:
+					Edges[w] = [vertex]
+
+		plan = self.VisibilityDijkstras(Vertices, Edges, start_config, goal_config)
+
+		return plan
+
 
 	def GetVertices(self, env_config, start_config, goal_config):
 		Vertices = []
@@ -42,9 +56,11 @@ class VisibilityPlanner(object):
 				exit(0)
 		return Vertices
 
-	def GetRectangleVertices(self, shape):
 
+	def GetRectangleVertices(self, shape):
 		#http://math.stackexchange.com/questions/175896/finding-a-point-along-a-line-a-certain-distance-away-from-another-point
+
+		RectangleVertices = []
 
 		x1 = float(shape[1][0]) # top left x
         y1 = float(shape[1][1]) # top left y
@@ -57,8 +73,6 @@ class VisibilityPlanner(object):
 
 		#distance between physical vertex and buffered vertex
 		dist = math.sqrt(2)*50
-
-		RectangleVertices = []
 
 		vector13 = [x1-x3, y1-y3]
 		vectorMagnitude13 = math.sqrt(numpy.square(x1-x3) + numpy.square(y1-y3))
@@ -81,11 +95,142 @@ class VisibilityPlanner(object):
 
         return RectangleVertices
 
-       
+	       
+	def VisibilityDijkstras(self, Vertices, Edges, start_config, goal_config):
+	        print "start DijkstraPlanner to goal"
+		start_time = time.time()
+		dijkstra_edges = self.GetDijsktraEdges(Edges)
+		parent = {}
+
+		A = [None] * len(dijkstra_edges)
+		queue = [(0, start_config)]
+		expansions = 0
+
+		while queue:
+			cost, vertex1 = heappop(queue)
+
+			if vertex1 == goal_config:
+				final_cost = cost
+				break
+
+			if A[vertex1] is None:
+				A[vertex1] = cost
+				for vertex2, temp_cost in dijkstra_edges[vertex1].items():
+					if A[vertex2] is None:
+						heappush(queue, (cost + temp_cost, vertex2))
+						parent[vertex2] = vertex1
+			expansions+=1
 
 
+		print "end DijkstraPlanner"
+	    print("Seconds to complete DijkstraPlanner: " + str(time.time()- start_time))
+	    return final_cost, self.ReconstructPath(parent, goal_id), expansions
 
 
+	def GetDijsktraEdges(self, Edges):
+		dijkstra_edges = {}
+		Edges3D = self.Get3DEdges(Edges) # dict of format [(x, y), theta] = [((x_neighbor1, y_neighbor1), theta_neighbor1]
+
+		for edge, neighbors in Edges3D.items():
+			temp_edges = {}
+			for neighbor in neighbors:
+				temp_edges[neighor] = self.CostOfMove(edge, neighbor)
+			dijkstra_edges[edge] = temp_edges
+
+		# dict of format:
+		# key = [(x, y), theta]
+		# val = dict of format:
+		#     key = [((x_neighbor1, y_neighbor1), theta_neighbor1)]
+		#	  val =	cost from (x, y), theta to (x_neighbor1, y_neighbor1), theta_neighbor1
+		return dijkstra_edges
 
 
+	def Get3DEdges(self, Edges):
+		Edges3D = {}
 
+		for edge, neighbors in Edges.keys():
+			neighbor_thetas = self.FindRelativeAngles(edge, neighbors)
+
+			for neighbor in neighbors:
+				theta_edge_to_neighor = neighbor_thetas[neighbor]
+
+				# if facing neighboring vertex, neighbor is that vertex
+				Edges3D[(edge, theta_edge_to_neighor)] = [(neighbor, theta_edge_to_neighor)]
+				for neighbor_theta in neighbor_thetas:
+
+					# if just arrived from vertex (have opp angle), neighbors are turning to visible vertices, including turning around pi radians
+					if (edge, (theta_edge_to_neighor + math.pi)%(2 * math.pi)) in Edges:
+						Edges3D[(edge, (theta_edge_to_neighor + math.pi)%(2 * math.pi))].append((neighbor, theta_edge_to_neighor))
+					else:
+						Edges3D[(edge, (theta_edge_to_neighor + math.pi)%(2 * math.pi))] = [(neighbor, theta_edge_to_neighor)]
+
+
+		# dict of format:
+		# key = [(x, y), theta]
+		# val = [((x_neighbor1, y_neighbor1), theta_neighbor1), ((x_neighbor2, ....]
+		return Edges3D
+
+
+	# calculate angle from origin to point p
+	def FindRelativeAngle(self, o_x, o_y, p_x, p_y):
+
+		# y axis is flipped
+		origin_x = float(o_x)
+		origin_y = float(o_y * -1)
+		point_x = float(p_x)
+		point_y = float(p_y * -1)
+
+        if origin_y != point_y:
+            relative_theta = math.atan(float(point_y - origin_y) / float(point_x - origin_x)) # radians
+        else:
+            if point_x > origin_x: # point is to right of origin
+                relative_theta = 0
+            else: # point is to left of origin
+                relative_theta = math.pi
+
+        # theta is between -pi/4 and pi/4.  need to change to be between 0 and 2pi
+        if point_x < origin_x: # quadrant 2 and 3
+            relative_theta = relative_theta + math.pi
+        elif point_y < origin_y: # quadrant 4
+            relative_theta = relative_theta + 2*math.pi
+
+        return relative_theta
+
+
+   	def CostOfMove(self, edge, neighbor):
+   		cost = 0
+
+   		edge_x = edge[0][0]
+   		edge_y = edge[0][1]
+   		edge_theta = edge[1]
+   		neighbor_x = neighbor[0][0]
+   		neighbor_y = neighbor[0][1]
+   		neighbor_theta = neighbor[1]
+
+   		# euclidian distance
+   		if edge_theta == neighbor_theta:
+   			cost = numpy.sqrt(float(numpy.square(edge_x - neighbor_x) + numpy.square(edge_y - neighbor_y)))
+   		# TODO: scale cost of rotation to reasonable scale
+   		# perhaps, highest euclidian cost is diagonally across board, so highest rotation (180 degrees or pi) should be scaled to that
+   		# alternatively, rotations are rather similar, so perhaps just add 1 to each?
+   		# however, larger rotations should matter more than small...so probably scale.  but even scaling to diagonal seems large
+   		else:
+   			cost = abs(edge_theta - neighbor_theta)
+   			# cost = abs(edge_theta - neighbor_theta) * (numpy.sqrt(float(numpy.square(self.height) + numpy.square(self.width)))) / math.pi
+
+   		return cost
+
+
+	def ReconstructPath(self, parent, current):
+	    total_path = [current]
+	    while current in parent:
+	        current = parent[current]
+	        total_path.append(current)
+
+	    total_path.reverse()
+	    plan = []
+	    for node in total_path:
+	        # plan.append(self.NodeIdToGridCoord(node))
+	        plan.append(node)
+
+	    return plan
