@@ -5,8 +5,7 @@ import argparse, numpy, openravepy, time, math, random, ast
 # from HerbEnvironment import HerbEnvironment
 # from SimpleEnvironment import SimpleEnvironment
 from PlanningEnvironment import PlanningEnvironment
-
-# from VisibilityPlanner import VisibilityPlanner
+from VisibilityPlanner import VisibilityPlanner
 # from RRTPlanner import RRTPlanner
 # from PRMPlanner import PRMPlanner
 # from VRRTPlanner import VRRTPlanner
@@ -32,6 +31,8 @@ def main(planner, planning_env, visualize, output, domain):
     # else:
     #     goal_config = numpy.array([2.0, -0.8])
     planning_env.InitializePlot(env_config, start_config, goal_config, width, height, robot_radius)
+    planner.Plan(env_config, start_config, goal_config)    
+
     start_time = time.time()
     # # plan = planner.Plan(start_config, goal_config, visualize, output)
     # plan_short = planning_env.ShortenPath(plan)
@@ -644,6 +645,10 @@ def CheckRobotArcCollision(shape, x, y):
 
 
 if __name__ == "__main__":
+    global width
+    global height
+    global robot_radius
+
     parser = argparse.ArgumentParser(description='script for testing planners')
     
     # parser.add_argument('-r', '--robot', type=str, default='simple',
@@ -688,20 +693,21 @@ if __name__ == "__main__":
     #     exit(0)
     # Next setup the planner
     planning_env = PlanningEnvironment()
-    planner = args.planner
-    # # if args.planner == 'v':
-    # #     planner = VisibilityPlanner(planning_env, visualize=visualize)
-    # # elif args.planner == 'rrt':
-    # #     planner = RRTPlanner(planning_env, visualize=visualize)
-    # # elif args.planner == 'prm':
-    # #     planner = PRMPlanner(planning_env, visualize=visualize)
-    # # elif args.planner == 'vrrt':
-    # #     planner = VRRTPlanner(planning_env, visualize=visualize)
-    # # elif args.planner == 'vprm':
-    # #     planner = VPRMPlanner(planning_env, visualize=visualize)
-    # # else:
-    # #     print 'Unknown planner option: %s' % args.planner
-    # #     exit(0)
+    if args.planner == 'v':
+        planner = VisibilityPlanner(planning_env, visualize=visualize, width, height, robot_radius)
+        # # elif args.planner == 'rrt':
+        # #     planner = RRTPlanner(planning_env, visualize=visualize)
+        # # elif args.planner == 'prm':
+        # #     planner = PRMPlanner(planning_env, visualize=visualize)
+        # # elif args.planner == 'vrrt':
+        # #     planner = VRRTPlanner(planning_env, visualize=visualize)
+        # # elif args.planner == 'vprm':
+        # #     planner = VPRMPlanner(planning_env, visualize=visualize)
+    else:
+        print 'Unknown planner option: %s' % args.planner
+        exit(0)
+
+
 
     main(planner, planning_env, visualize, None, domain)
 
