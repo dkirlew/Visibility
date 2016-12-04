@@ -5,7 +5,7 @@ import argparse, numpy, time, math, random, ast
 # from HerbEnvironment import HerbEnvironment
 # from SimpleEnvironment import SimpleEnvironment
 from PlanningEnvironment import PlanningEnvironment
-#from VisibilityPlanner import VisibilityPlanner
+from VisibilityPlanner import VisibilityPlanner
 # from RRTPlanner import RRTPlanner
 # from PRMPlanner import PRMPlanner
 # from VRRTPlanner import VRRTPlanner
@@ -17,20 +17,34 @@ def main(planner, planning_env, visualize, output, domain):
     global width
     global robot_radius
 
-    env_config, start_config, goal_config = parse_domain(domain)#numpy.array(robot.GetCurrentConfiguration())
+    env_config, start, goal = parse_domain(domain)#numpy.array(robot.GetCurrentConfiguration())
     print ("env_config:")
     for config in env_config:
         print (str(config))
-    print ("start_config:",start_config)
-    print ("goal_config:",goal_config)
+    print ("start_config:",start)
+    print ("goal_config:",goal)
     # if robot.name == 'herb':
     #     goal_config = numpy.array([ 3.68, -1.90,  0.00,  2.20,  0.00,  0.00,  0.00 ])
     # else:
     #     goal_config = numpy.array([2.0, -0.8])
 
-    planning_env.InitializePlot(env_config, start_config, goal_config, width, height, robot_radius)
-    # planner.Plan(env_config, start_config, goal_config)    
+    start_x = start[1]
+    start_y = start[2]
+    start_theta = goal[3]
+    goal_x = goal[1]
+    goal_y = goal[2]
+    goal_theta = goal[3]
 
+    start_config = ((start_x, start_y), start_theta)
+
+    goal_config = ((goal_x, goal_y), goal_theta)
+
+
+
+    Vertices, Edges, path = planner.Plan(env_config, start_config, goal_config)    
+    planning_env.InitializePlot(Vertices, Edges, path, env_config, start_config, goal_config)
+    # planning_env.InitializeMiniPlot(env_config, start_config, goal_config)
+  
     start_time = time.time()
     # # plan = planner.Plan(start_config, goal_config, visualize, output)
     # plan_short = planning_env.ShortenPath(plan)
@@ -103,8 +117,8 @@ def parse_domain(domain_file_name):
             elif line[0].lower() == "s":
                 split = line.split("|") 
                 robot_start_config.append(split[0])
-                x = int(split[1])
-                y = int(split[2])
+                x = float(split[1])
+                y = float(split[2])
                 theta = float(split[3])
 
                 robot_start_config.append(x)
@@ -114,8 +128,8 @@ def parse_domain(domain_file_name):
             elif line[0].lower() == "g":
                 split = line.split("|") 
                 robot_goal_config.append(split[0])
-                x = int(split[1])
-                y = int(split[2])
+                x = float(split[1])
+                y = float(split[2])
                 theta = float(split[3])
 
                 robot_goal_config.append(x)
@@ -386,8 +400,8 @@ def CreateRobotConfig(env_config, start_config = None):
             x = random.randint(0 + robot_radius, width - robot_radius)
             y = random.randint(0 + robot_radius, height - robot_radius)
             numTries+=1
-    config.append(x)
-    config.append(y)
+    config.append(float(x))
+    config.append(float(y))
     config.append(theta)
     if numTries >= 9:
         print ("HEY NUMTRIES MAXED OUT ------------------------------------------------")
@@ -690,21 +704,21 @@ if __name__ == "__main__":
     #     print 'Unknown robot option: %s' % args.robot
     #     exit(0)
     # Next setup the planner
-    planning_env = PlanningEnvironment()
+    planning_env = PlanningEnvironment(width, height, robot_radius)
     planner = args.planner
-    # if args.planner == 'v':
-    #     planner = VisibilityPlanner(planning_env, visualize, width, height, robot_radius)
-    #     # # elif args.planner == 'rrt':
-    #     # #     planner = RRTPlanner(planning_env, visualize)
-    #     # # elif args.planner == 'prm':
-    #     # #     planner = PRMPlanner(planning_env, visualize)
-    #     # # elif args.planner == 'vrrt':
-    #     # #     planner = VRRTPlanner(planning_env, visualize)
-    #     # # elif args.planner == 'vprm':
-    #     # #     planner = VPRMPlanner(planning_env, visualize)
-    # else:
-    #     print ('Unknown planner option: %s' % args.planner)
-    #     exit(0)
+    if args.planner == 'v':
+        planner = VisibilityPlanner(planning_env, visualize, width, height, robot_radius)
+        # # elif args.planner == 'rrt':
+        # #     planner = RRTPlanner(planning_env, visualize)
+        # # elif args.planner == 'prm':
+        # #     planner = PRMPlanner(planning_env, visualize)
+        # # elif args.planner == 'vrrt':
+        # #     planner = VRRTPlanner(planning_env, visualize)
+        # # elif args.planner == 'vprm':
+        # #     planner = VPRMPlanner(planning_env, visualize)
+    else:
+        print ('Unknown planner option: %s' % args.planner)
+        exit(0)
 
 
 

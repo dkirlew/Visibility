@@ -4,7 +4,7 @@ import argparse, numpy, openravepy, time, math, random, ast
 
 from collections import defaultdict
 from heapq import heappop, heappush
-import heap
+# import heap
 
 class VisibilityPlanner(object):
 
@@ -16,7 +16,7 @@ class VisibilityPlanner(object):
 		self.robot_radius = robot_radius
 
 
-	def Plan(env_config, start_config, goal_config):
+	def Plan(self, env_config, start_config, goal_config):
 		self.env_config = env_config
 		self.start_config = start_config
 		self.goal_config = goal_config
@@ -24,21 +24,27 @@ class VisibilityPlanner(object):
 		Vertices = self.GetVerticesDict(env_config)
 		Edges = {}
 		for vertex in Vertices.keys(): 
-			W = self.VisibleVertices(vertex, Vertices, start_config, goal_config)
+			W = self.VisibleVertices(vertex, Vertices)
 			for w in W:
 				if vertex in Edges:
-					Edges[vertex].append(w)
+					# print "edge vertex:", vertex
+					if w not in Edges[vertex]:
+						Edges[vertex].append(w)
 				else:
+					# print "edge vertex:", vertex
 					Edges[vertex] = [w]
 
 				if w in Edges:
-					Edges[w].append(vertex)
+					# print "edge w:",w
+					if vertex not in Edges[w]:
+						Edges[w].append(vertex)
 				else:
+					# print "edge w:",w
 					Edges[w] = [vertex]
 
-		plan = self.VisibilityDijkstras(Vertices, Edges, start_config, goal_config)
+		final_cost, plan, num_expansions = self.VisibilityDijkstras(Vertices, Edges)
 
-		return plan
+		return Vertices, Edges, plan
 
 
 	def GetVerticesDict(self, env_config):
@@ -65,8 +71,13 @@ class VisibilityPlanner(object):
 				print ("Shape not recognized. (Should be R or L or C or A)")
 				exit(0)
 
-		Vertices[self.start_config] = []
-		Vertices[self.goal_config] = []
+		start_x = self.start_config[0][0]
+		start_y = self.start_config[0][1]
+		goal_x = self.goal_config[0][0]
+		goal_y = self.goal_config[0][1]
+
+		Vertices[(start_x, start_y)] = []
+		Vertices[(goal_x, goal_y)] = []
 
 		# dict is of form:
 		#	key = 2D vertex
@@ -75,36 +86,64 @@ class VisibilityPlanner(object):
 
 
 	def VisibleVertices(self, vertex, Vertices):
-		visible_vertices = []
+		W = []
 		T = {}
+		start_x = self.start_config[0][0]
+		start_y = self.start_config[0][1]
+		goal_x = self.goal_config[0][0]
+		goal_y = self.goal_config[0][1]
 
 		thetas = self.FindSortedRelativeAngles(vertex, Vertices) # include start_config, goal_config
 		i = 1
 		prev_w = None
 
 		while thetas:
-			theta, w = heappop(thetas)
+			(theta, dist), w = heappop(thetas)
 
-			if self.Visible(vertex, w, prev_w, i, T, W):
-				self.AddRemoveEdges(v, w, Vertices[w], T)
-				visible_vertices.append(w)
+			if vertex != w:
+				if self.Visible(vertex, w, prev_w, i, T, W):
+					self.AddRemoveEdges(vertex, w, Vertices[w], T)
+					W.append(w)
 
-			prev_w = w
-			i+=1
+				prev_w = w
+				i+=1
 
-		return visible_vertices
+		return W
 
 
 	def FindSortedRelativeAngles(self, vertex, Vertices): # include start_config, goal_config
-
+		# print "vertex:", vertex
 		relative_angles = []
-		edge_x = edge[0]
-		edge_y = edge[1]
+		vertex_x = vertex[0]
+		vertex_y = vertex[1]
+		start_x = self.start_config[0][0]
+		start_y = self.start_config[0][1]
+		goal_x = self.goal_config[0][0]
+		goal_y = self.goal_config[0][1]
 
-		for neighbor in neighbors:
-			neighbor_x = neighbor[0]
-			neighbor_y = neighbor[1]
-			relative_angles.heappush(self.FindRelativeAngle(edge_x, edge_y, neighbor_x, neighbor_y), neighbor)
+
+		for neighbor, val in Vertices.items():
+			if neighbor != vertex:
+				# print "neighbor:",neighbor
+				neighbor_x = neighbor[0]
+				neighbor_y = neighbor[1]
+
+				# print "vertex_x:",vertex_x
+				# print "vertex_y:",vertex_y
+				# print "neighbor_x:",neighbor_x
+				# print "neighbor_y:",neighbor_y
+				relative_angle = self.FindRelativeAngle(vertex_x, vertex_y, neighbor_x, neighbor_y)
+				dist = numpy.sqrt(float(numpy.square(vertex_x - neighbor_x) + numpy.square(vertex_y - neighbor_y)))
+
+				heappush(relative_angles, ((relative_angle, dist), neighbor))
+
+		relative_angle = self.FindRelativeAngle(vertex_x, vertex_y, start_x, start_y)
+		dist = numpy.sqrt(float(numpy.square(vertex_x - start_x) + numpy.square(vertex_y - start_y)))
+		heappush(relative_angles, ((relative_angle, dist), (start_x, start_y)))
+
+		relative_angle = self.FindRelativeAngle(vertex_x, vertex_y, goal_x, goal_y)
+		dist = numpy.sqrt(float(numpy.square(vertex_x - goal_x) + numpy.square(vertex_y - goal_y)))
+		heappush(relative_angles, ((relative_angle, dist), (goal_x, goal_y)))
 
 		return relative_angles
 
@@ -112,12 +151,17 @@ class VisibilityPlanner(object):
 	def Visible(self, vertex, neighbor, previous_neighbor, i, T, W):
 		if self.CheckPathCollision(vertex, neighbor):
 			return False
-		if i == 1 or (previous_neighbor is not None and not self.PointOnEdge(vertex, neighbor, previous_neighbor)):
-			closest_edge = T[min(T.keys())]
-			if self.EdgesIntersect(vertex, neighbor, closest_edge):
-				return False
-			else:
+		if i == 1:
+			return True
+		if previous_neighbor is not None and not self.PointOnEdge(vertex, neighbor, previous_neighbor):
+			if len(T.keys()) == 0:
 				return True
+			else:
+				closest_edge = T[min(T.keys())]
+				if self.EdgesIntersect(vertex, neighbor, closest_edge):
+					return False
+				else:
+					return True
 		else:
 			if previous_neighbor is not None and previous_neighbor not in W:
 				return False
@@ -129,17 +173,21 @@ class VisibilityPlanner(object):
 
 
 	def CheckPathCollision(self, vertex, neighbor):
+		# print "vertex:",vertex
+		# print "neighbor:",neighbor
+
 		vertex_x = vertex[0]
 		vertex_y = vertex[1]
 		neighbor_x = neighbor[0]
 		neighbor_y = neighbor[1]
 
 		dist = numpy.sqrt(float(numpy.square(vertex_x - neighbor_x) + numpy.square(vertex_y - neighbor_y)))
-
-		for check_dist in range(0, dist + self.robot_radius / 2, self.robot_radius / 2):
+		check_dist = 0.0
+		while check_dist <= dist + self.robot_radius / 2:
 			temp_loc = self.GetPointAtDistOnLine(vertex, neighbor, check_dist)
 			if self.planning_env.CheckCollision(self.env_config, temp_loc[0], temp_loc[1]):
 				return True
+			check_dist+=(self.robot_radius / 2.0)
 
 		return False
 
@@ -162,7 +210,7 @@ class VisibilityPlanner(object):
 		return point
 
 
-	def PointOnEdge(self, start_loc, end_loc, point):
+	def PointOnEdge(self, start_loc, end_loc, point_loc):
 		start_x = float(start_loc[0])
 		start_y = float(start_loc[1])
 		end_x = float(end_loc[0])
@@ -182,8 +230,8 @@ class VisibilityPlanner(object):
 
 
 	def EdgesIntersect(self, edge1_start, edge1_end, edge2):
-		edge2_start = edge[0]
-		edge2_end = edge[1]
+		edge2_start = edge2[0]
+		edge2_end = edge2[1]
 
 		x1 = float(edge1_start[0])
 		y1 = float(edge1_start[1])
@@ -273,22 +321,74 @@ class VisibilityPlanner(object):
 		x4 = float(shape[4][0]) # bottom left x
 		y4 = float(shape[4][1]) # bottom left y
 
-		#distance between physical vertex and buffered vertex
-		dist = self.robot_radius * math.sqrt(2)
 
-		vector13 = [x1-x3, y1-y3]
-		vectorMagnitude13 = math.sqrt(numpy.square(x1-x3) + numpy.square(y1-y3))
-		unitVector13 = [vector13[0]/vectorMagnitude13, vector13[1]/vectorMagnitude13]
+		print "x1:",x1,"y1:",y1
+		print "x2:",x2,"y2:",y2
+		print "x3:",x3,"y3:",y3
+		print "x4:",x4,"y4:",y4
 
-		[new_x1, new_y1] = [x1 + dist*unitVector13[0], y1 + dist*unitVector13[1]]
-		[new_x3, new_y3] = [x3 - dist*unitVector13[0], y3 - dist*unitVector13[1]]
+		xm = abs(x1 - x3) / 2 + min(x1, x3)
+		ym = abs(y1 - y3) / 2 + min(y1, y3)
 
-		vector24 = [x2-x4, y2-y4]
-		vectorMagnitude24 = math.sqrt(numpy.square(x2-x4) + numpy.square(y2-y4))
-		unitVector24 = [vector24[0]/vectorMagnitude24, vector24[1]/vectorMagnitude24]
+		x_side = abs(x1 - x2) / 2 + min(x1, x2)
+		y_side = abs(y1 - y2) / 2 + min(y1, y2)
 
-		[new_x2, new_y2] = [x2 + dist*unitVector24[0], y2 + dist*unitVector24[1]] 
-		[new_x4, new_y4] = [x4 - dist*unitVector24[0], y4 - dist*unitVector24[1]] 
+		print "xm:",xm,"ym:",ym
+
+		theta = self.FindRelativeAngle(x_side, y_side, xm, ym)
+		theta_rotated = -theta
+
+		print "theta:",theta
+
+
+		x1_rotated = round(math.cos(theta_rotated) * (x1 - xm) - math.sin(theta_rotated) * (y1 - ym) + xm, 2)
+		y1_rotated = round(math.sin(theta_rotated) * (x1 - xm) + math.cos(theta_rotated) * (y1 - ym) + ym, 2)
+		x2_rotated = round(math.cos(theta_rotated) * (x2 - xm) - math.sin(theta_rotated) * (y2 - ym) + xm, 2)
+		y2_rotated = round(math.sin(theta_rotated) * (x2 - xm) + math.cos(theta_rotated) * (y2 - ym) + ym, 2)
+		x3_rotated = round(math.cos(theta_rotated) * (x3 - xm) - math.sin(theta_rotated) * (y3 - ym) + xm, 2)
+		y3_rotated = round(math.sin(theta_rotated) * (x3 - xm) + math.cos(theta_rotated) * (y3 - ym) + ym, 2)
+		x4_rotated = round(math.cos(theta_rotated) * (x4 - xm) - math.sin(theta_rotated) * (y4 - ym) + xm, 2)
+		y4_rotated = round(math.sin(theta_rotated) * (x4 - xm) + math.cos(theta_rotated) * (y4 - ym) + ym, 2)
+
+
+
+		print "x1_rotated:",x1_rotated,"y1_rotated:",y1_rotated
+		print "x2_rotated:",x2_rotated,"y2_rotated:",y2_rotated
+		print "x3_rotated:",x3_rotated,"y3_rotated:",y3_rotated
+		print "x4_rotated:",x4_rotated,"y4_rotated:",y4_rotated
+
+
+		buffer_x1_rotated = x1_rotated - self.robot_radius
+		buffer_y1_rotated = y1_rotated + self.robot_radius
+		buffer_x2_rotated = x2_rotated - self.robot_radius
+		buffer_y2_rotated = y2_rotated - self.robot_radius
+		buffer_x3_rotated = x3_rotated + self.robot_radius
+		buffer_y3_rotated = y3_rotated - self.robot_radius
+		buffer_x4_rotated = x4_rotated + self.robot_radius
+		buffer_y4_rotated = y4_rotated + self.robot_radius
+
+		print "buffer_x1_rotated:",buffer_x1_rotated,"buffer_y1_rotated:",buffer_y1_rotated
+		print "buffer_x2_rotated:",buffer_x2_rotated,"buffer_y2_rotated:",buffer_y2_rotated
+		print "buffer_x3_rotated:",buffer_x3_rotated,"buffer_y3_rotated:",buffer_y3_rotated
+		print "buffer_x4_rotated:",buffer_x4_rotated,"buffer_y4_rotated:",buffer_y4_rotated
+
+
+
+		new_x1 = round(math.cos(theta) * (buffer_x1_rotated - xm) - math.sin(theta) * (buffer_y1_rotated - ym) + xm, 2)
+		new_y1 = round(math.sin(theta) * (buffer_x1_rotated - xm) + math.cos(theta) * (buffer_y1_rotated - ym) + ym, 2)
+		new_x2 = round(math.cos(theta) * (buffer_x2_rotated - xm) - math.sin(theta) * (buffer_y2_rotated - ym) + xm, 2)
+		new_y2 = round(math.sin(theta) * (buffer_x2_rotated - xm) + math.cos(theta) * (buffer_y2_rotated - ym) + ym, 2)
+		new_x3 = round(math.cos(theta) * (buffer_x3_rotated - xm) - math.sin(theta) * (buffer_y3_rotated - ym) + xm, 2)
+		new_y3 = round(math.sin(theta) * (buffer_x3_rotated - xm) + math.cos(theta) * (buffer_y3_rotated - ym) + ym, 2)
+		new_x4 = round(math.cos(theta) * (buffer_x4_rotated - xm) - math.sin(theta) * (buffer_y4_rotated - ym) + xm, 2)
+		new_y4 = round(math.sin(theta) * (buffer_x4_rotated - xm) + math.cos(theta) * (buffer_y4_rotated - ym) + ym, 2)
+
+		print "new_x1:",new_x1,"new_y1:",new_y1
+		print "new_x2:",new_x2,"new_y2:",new_y2
+		print "new_x3:",new_x3,"new_y3:",new_y3
+		print "new_x4:",new_x4,"new_y4:",new_y4
+
+
 
 		RectangleVertices[(new_x1, new_y1)] = [(new_x2, new_y2), (new_x4, new_y4)]
 		RectangleVertices[(new_x2, new_y2)] = [(new_x1, new_y1), (new_x3, new_y3)]
@@ -299,17 +399,39 @@ class VisibilityPlanner(object):
 
 
 	def GetLineVertices(self, shape, LineVertices):
-		xs = float(shape[1][0]) # top left x
-		ys = float(shape[1][1]) # top left y
-		xe = float(shape[2][0]) # top right x
-		ye = float(shape[2][1]) # top right 
+		if float(shape[1][0]) < float(shape[2][0]):
+			xs = float(shape[1][0]) # top left x
+			ys = float(shape[1][1]) # top left y
+			xe = float(shape[2][0]) # top right x
+			ye = float(shape[2][1]) # top right
+		elif float(shape[1][0]) > float(shape[2][0]):
+			xe = float(shape[1][0]) # top left x
+			ye = float(shape[1][1]) # top left y
+			xs = float(shape[2][0]) # top right x
+			ys = float(shape[2][1]) # top right
+		else:
+			if float(shape[1][1]) < float(shape[2][1]):
+				xs = float(shape[1][0]) # top left x
+				ys = float(shape[1][1]) # top left y
+				xe = float(shape[2][0]) # top right x
+				ye = float(shape[2][1]) # top right
+			else:
+				xe = float(shape[1][0]) # top left x
+				ye = float(shape[1][1]) # top left y
+				xs = float(shape[2][0]) # top right x
+				ys = float(shape[2][1]) # top right
+
+		# print "xs:",xs,"ys:",ys
+		# print "xe:",xe,"ye:",ye
 
 		theta = self.FindRelativeAngle(xs, ys, xe, ye)
 
-		if theta > math.pi/2:
-			theta_rotated = math.pi - theta
-		elif theta < math.pi/2:
-			theta_rotated = -theta
+		# print "theta:",theta
+
+		# if theta > math.pi/2:
+		# 	theta_rotated = math.pi - theta
+		# elif theta < math.pi/2:
+		theta_rotated = -theta
 
 		xm = abs(xe-xs)/2 + min(xs, xe)
 		ym = abs(ye-ys)/2 + min(ys, ye)
@@ -318,24 +440,46 @@ class VisibilityPlanner(object):
 		ys_rotated = math.sin(theta_rotated) * (xs - xm) + math.cos(theta_rotated) * (ys - ym) + ym
 		xe_rotated = math.cos(theta_rotated) * (xe - xm) - math.sin(theta_rotated) * (ye - ym) + xm
 		ye_rotated = math.sin(theta_rotated) * (xe - xm) + math.cos(theta_rotated) * (ye - ym) + ym
+		# print "xs_rotated:",xs_rotated,"ys_rotated:",ys_rotated
+		# print "xe_rotated:",xe_rotated,"ye_rotated:",ye_rotated
 
 		x1 = xs_rotated - self.robot_radius
 		y1 = ys_rotated - self.robot_radius
-		x2 = xs_rotated + self.robot_radius
-		y2 = ys_rotated - self.robot_radius
-		x3 = xs_rotated + self.robot_radius
-		y3 = ys_rotated + self.robot_radius
+		x2 = xe_rotated + self.robot_radius
+		y2 = ye_rotated - self.robot_radius
+		x3 = xe_rotated + self.robot_radius
+		y3 = ye_rotated + self.robot_radius
 		x4 = xs_rotated - self.robot_radius
 		y4 = ys_rotated + self.robot_radius
 
-		x1_rotated = math.cos(theta) * (x1 - xm) - math.sin(theta) * (y1 - ym) + xm
-		y1_rotated = math.sin(theta) * (x1 - xm) + math.cos(theta) * (y1 - ym) + ym
-		x2_rotated = math.cos(theta) * (x2 - xm) - math.sin(theta) * (y2 - ym) + xm
-		y2_rotated = math.sin(theta) * (x2 - xm) + math.cos(theta) * (y2 - ym) + ym
-		x3_rotated = math.cos(theta) * (x3 - xm) - math.sin(theta) * (y3 - ym) + xm
-		y3_rotated = math.sin(theta) * (x3 - xm) + math.cos(theta) * (y3 - ym) + ym
-		x4_rotated = math.cos(theta) * (x4 - xm) - math.sin(theta) * (y4 - ym) + xm
-		y4_rotated = math.sin(theta) * (x4 - xm) + math.cos(theta) * (y4 - ym) + ym
+
+		# print "x1:",x1,"y1:",y1
+		# print "x2:",x2,"y2:",y2
+		# print "x3:",x3,"y3:",y3
+		# print "x4:",x4,"y4:",y4
+
+
+
+		x1_rotated = round(math.cos(theta) * (x1 - xm) - math.sin(theta) * (y1 - ym) + xm, 2)
+		y1_rotated = round(math.sin(theta) * (x1 - xm) + math.cos(theta) * (y1 - ym) + ym, 2)
+		x2_rotated = round(math.cos(theta) * (x2 - xm) - math.sin(theta) * (y2 - ym) + xm, 2)
+		y2_rotated = round(math.sin(theta) * (x2 - xm) + math.cos(theta) * (y2 - ym) + ym, 2)
+		x3_rotated = round(math.cos(theta) * (x3 - xm) - math.sin(theta) * (y3 - ym) + xm, 2)
+		y3_rotated = round(math.sin(theta) * (x3 - xm) + math.cos(theta) * (y3 - ym) + ym, 2)
+		x4_rotated = round(math.cos(theta) * (x4 - xm) - math.sin(theta) * (y4 - ym) + xm, 2)
+		y4_rotated = round(math.sin(theta) * (x4 - xm) + math.cos(theta) * (y4 - ym) + ym, 2)
+
+
+		# print "x1_rotated:",x1_rotated,"y1_rotated:",y1_rotated
+		# print "x2_rotated:",x2_rotated,"y2_rotated:",y2_rotated
+		# print "x3_rotated:",x3_rotated,"y3_rotated:",y3_rotated
+		# print "x4_rotated:",x4_rotated,"y4_rotated:",y4_rotated
+
+		# print "line (x1_rotated, y1_rotated):",(x1_rotated, y1_rotated)
+		# print "line (x2_rotated, y2_rotated):",(x2_rotated, y2_rotated)
+		# print "line (x3_rotated, y3_rotated):",(x3_rotated, y3_rotated)
+		# print "line (x4_rotated, y4_rotated):",(x4_rotated, y4_rotated)
+
 
 		LineVertices[(x1_rotated, y1_rotated)] = [(x2_rotated, y2_rotated), (x4_rotated, y4_rotated)]
 		LineVertices[(x2_rotated, y2_rotated)] = [(x1_rotated, y1_rotated), (x3_rotated, y3_rotated)]
@@ -365,11 +509,16 @@ class VisibilityPlanner(object):
 			theta = math.pi/4 * i
 			x_temp = math.cos(theta) * (x_curr - xc) - math.sin(theta) * (y_curr - yc) + xc
 			y_temp = math.sin(theta) * (x_curr - xc) + math.cos(theta) * (y_curr - yc) + yc
+			# print "circle loop (x_temp, y_temp):",(x_temp, y_temp)
+			# print "circle loop (x_curr, y_curr):",(x_curr, y_curr)
+
 			CircleVertices[(x_temp, y_temp)] = [(x_curr, y_curr)]
 			CircleVertices[(x_curr, y_curr)].append((x_temp, y_temp))
 			x_curr = x_temp
 			y_curr = y_temp
 
+		# print "circle (x_curr, y_curr):",(x_curr, y_curr)
+		# print "circle (x_start, y_start):",(x_start, y_start)
 
 		CircleVertices[(x_curr, y_curr)].append((x_start, y_start))
 		CircleVertices[(x_start, y_start)].append((x_curr, y_curr))
@@ -441,28 +590,32 @@ class VisibilityPlanner(object):
 
 		return
 
-	       
-	def VisibilityDijkstras(self, Vertices, Edges, start_config, goal_config):
+		   
+	def VisibilityDijkstras(self, Vertices, Edges):
 		print ("start DijkstraPlanner to goal")
 		start_time = time.time()
 		dijkstra_edges = self.GetDijsktraEdges(Edges)
 		parent = {}
 
-		A = [None] * len(dijkstra_edges)
-		queue = [(0, start_config)]
+		A = {} #[None] * len(dijkstra_edges)
+		queue = [(0, self.start_config)]
 		expansions = 0
 
 		while queue:
 			cost, vertex1 = heappop(queue)
 
-			if vertex1 == goal_config:
+			if vertex1 == self.goal_config:
 				final_cost = cost
 				break
 
-			if A[vertex1] is None:
+			# if A[vertex1] is None:
+			if vertex1 not in A.keys():
 				A[vertex1] = cost
-				for vertex2, temp_cost in dijkstra_edges[vertex1].items():
-					if A[vertex2] is None:
+				vertex1_dict = dijkstra_edges[vertex1]
+				# print "vertex1_dict:",vertex1_dict
+				for vertex2, temp_cost in vertex1_dict.items():
+					# if A[vertex2] is None:
+					if vertex2 not in A.keys():
 						heappush(queue, (cost + temp_cost, vertex2))
 						parent[vertex2] = vertex1
 			expansions+=1
@@ -470,17 +623,19 @@ class VisibilityPlanner(object):
 
 		print ("end DijkstraPlanner")
 		print("Seconds to complete DijkstraPlanner: " + str(time.time()- start_time))
-		return final_cost, self.ReconstructPath(parent, goal_id), expansions
+		return final_cost, self.ReconstructPath(parent, self.goal_config), expansions
 
 
 	def GetDijsktraEdges(self, Edges):
 		dijkstra_edges = {}
+		self.AngleDict = {}
 		Edges3D = self.Get3DEdges(Edges) # dict of format [(x, y), theta] = [((x_neighbor1, y_neighbor1), theta_neighbor1]
 
 		for edge, neighbors in Edges3D.items():
 			temp_edges = {}
 			for neighbor in neighbors:
-				temp_edges[neighor] = self.CostOfMove(edge, neighbor)
+				temp_edges[neighbor] = self.CostOfMove(edge, neighbor)
+			# print "edge in dict dict:", edge
 			dijkstra_edges[edge] = temp_edges
 
 		# dict of format:
@@ -494,25 +649,86 @@ class VisibilityPlanner(object):
 	def Get3DEdges(self, Edges):
 		Edges3D = {}
 
-		for edge, neighbors in Edges.keys():
+		start_x = float(self.start_config[0][0])
+		start_y = float(self.start_config[0][1])
+		start_theta = self.start_config[1]
+		goal_x = float(self.goal_config[0][0])
+		goal_y = float(self.goal_config[0][1])
+		goal_theta = self.goal_config[1]
+
+		start2D = (start_x, start_y)
+		goal2D = (goal_x, goal_y)
+		print "start2D:",start2D
+
+		print "goal2D:",goal2D
+
+		for edge, neighbors in Edges.items():
+			# print "edge or vertex v is:",edge
 			neighbor_thetas = self.FindRelativeAngles(edge, neighbors)
 
 			for neighbor in neighbors:
-				theta_edge_to_neighor = neighbor_thetas[neighbor]
+				theta_edge_to_neighbor = neighbor_thetas[neighbor]
+				# print "theta_edge_to_neighbor:",theta_edge_to_neighbor
 
-				# if facing neighboring vertex, neighbor is that vertex
-				Edges3D[(edge, theta_edge_to_neighor)] = [(neighbor, theta_edge_to_neighor)]
-				
-				for neighbor_theta in neighbor_thetas:
-					# if facing neighboring vertex, neighbor can also be rotation towards other vertices
-					if theta_edge_to_neighor != neighbor_theta:
-						Edges3D[(edge, theta_edge_to_neighor)].append((edge, neighor_theta))
-
-					# if just arrived from vertex (have opp angle), neighbors are turning to visible vertices, including turning around pi radians
-					if (edge, (theta_edge_to_neighor + math.pi)%(2 * math.pi)) in Edges:
-						Edges3D[(edge, (theta_edge_to_neighor + math.pi)%(2 * math.pi))].append((neighbor, theta_edge_to_neighor))
+				if edge != goal2D and edge != start2D:
+					# if facing neighboring vertex, neighbor is that vertex
+					if (edge, theta_edge_to_neighbor) not in Edges:
+						Edges3D[(edge, theta_edge_to_neighbor)] = [(neighbor, theta_edge_to_neighbor)]
 					else:
-						Edges3D[(edge, (theta_edge_to_neighor + math.pi)%(2 * math.pi))] = [(neighbor, theta_edge_to_neighor)]
+						Edges3D[(edge, theta_edge_to_neighbor)].append((neighbor, theta_edge_to_neighbor))
+
+				
+					for foo, neighbor_theta in neighbor_thetas.items():
+						# if foo == start2D:
+						# 	print "found start in neighbors"
+						# 	print "theta from foo to start:", neighbor_theta
+						# 	print "theta from start to foo:", round((neighbor_theta + math.pi)%(2 * math.pi), 2)
+
+						# print "neighbor_theta:",neighbor_theta
+						# if facing neighboring vertex, neighbor can also be rotation towards other vertices
+						if theta_edge_to_neighbor != neighbor_theta:
+							if (edge, theta_edge_to_neighbor) not in Edges3D:
+								Edges3D[(edge, theta_edge_to_neighbor)] = [(edge, neighbor_theta)]
+							else:
+								if (edge, neighbor_theta) not in Edges3D[(edge, theta_edge_to_neighbor)]:
+									Edges3D[(edge, theta_edge_to_neighbor)].append((edge, neighbor_theta))
+
+						# if just arrived from vertex (have opp angle), neighbors are turning to visible vertices, including turning around pi radians
+						if (edge, (neighbor_theta + math.pi)%(2 * math.pi)) in Edges:
+							Edges3D[(edge, round((neighbor_theta + math.pi)%(2 * math.pi), 2))].append((edge, theta_edge_to_neighbor))
+						else:
+							Edges3D[(edge, round((neighbor_theta + math.pi)%(2 * math.pi), 2))] = [(edge, theta_edge_to_neighbor)]
+
+				elif edge == start2D:
+					# print "start neighbor:", neighbor
+					# print "neighbor theta:", theta_edge_to_neighbor
+					if (edge, start_theta) not in Edges3D:
+						Edges3D[(edge, start_theta)] = [(edge, theta_edge_to_neighbor)]
+						# print "start added",(edge, theta_edge_to_neighbor)
+					else:
+						Edges3D[(edge, start_theta)].append((edge, theta_edge_to_neighbor))
+						# print "start added",(edge, theta_edge_to_neighbor)
+
+					if (edge, theta_edge_to_neighbor) not in Edges3D:
+						Edges3D[(edge, theta_edge_to_neighbor)] = [(neighbor, theta_edge_to_neighbor)]
+					elif (neighbor, theta_edge_to_neighbor) not in Edges3D[(edge, theta_edge_to_neighbor)]:
+						Edges3D[(edge, theta_edge_to_neighbor)].append((neighbor, theta_edge_to_neighbor))
+
+
+					for foo, neighbor_theta in neighbor_thetas.items():
+						if theta_edge_to_neighbor != neighbor_theta:
+							if (edge, theta_edge_to_neighbor) not in Edges3D:
+								Edges3D[(edge, theta_edge_to_neighbor)] = [(edge, neighbor_theta)]
+							elif (edge, neighbor_theta) not in Edges3D[(edge, theta_edge_to_neighbor)]:
+								Edges3D[(edge, theta_edge_to_neighbor)].append((edge, neighbor_theta))
+
+
+				else: # is Goal
+					# from incoming neighbor, can only rotate to goal theta
+					if (edge, goal_theta) not in Edges3D:
+						Edges3D[(edge, round((theta_edge_to_neighbor + math.pi)%(2 * math.pi), 2))] = [(edge, goal_theta)]
+					else:
+						Edges3D[(edge, round((theta_edge_to_neighbor + math.pi)%(2 * math.pi), 2))].append((edge, goal_theta))
 
 
 		# dict of format:
@@ -522,14 +738,28 @@ class VisibilityPlanner(object):
 
 
 	def FindRelativeAngles(self, edge, neighbors):
+		# print "edge:",edge
 		relative_angles = {}
 		edge_x = edge[0]
 		edge_y = edge[1]
 
 		for neighbor in neighbors:
+			# print "neighbor:",neighbor
 			neighbor_x = neighbor[0]
 			neighbor_y = neighbor[1]
-			relative_angles[neighbor] = self.FindRelativeAngle(edge_x, edge_y, neighbor_x, neighbor_y)
+			# print "edge_x:",edge_x
+			# print "edge_y:",edge_y
+			# print "neighbor_x:",neighbor_x
+			# print "neighbor_y:",neighbor_y
+
+			if ((edge_x, edge_y), (neighbor_x, neighbor_y)) in self.AngleDict:
+				relative_angles[neighbor] = self.AngleDict[((edge_x, edge_y), (neighbor_x, neighbor_y))]
+			else:
+				temp_angle = self.FindRelativeAngle(edge_x, edge_y, neighbor_x, neighbor_y)
+				self.AngleDict[((edge_x, edge_y), (neighbor_x, neighbor_y))] = temp_angle
+				self.AngleDict[((neighbor_x, neighbor_y), (edge_x, edge_y))] = round((temp_angle + math.pi) % (2 * math.pi), 2)
+
+				relative_angles[neighbor] = temp_angle
 
 		return relative_angles
 
@@ -539,9 +769,9 @@ class VisibilityPlanner(object):
 
 		# y axis is flipped
 		origin_x = float(o_x)
-		origin_y = float(o_y * -1)
+		origin_y = float(o_y)
 		point_x = float(p_x)
-		point_y = float(p_y * -1)
+		point_y = float(p_y)
 
 		if origin_y != point_y:
 			relative_theta = math.atan(float(point_y - origin_y) / float(point_x - origin_x)) # radians
@@ -557,7 +787,8 @@ class VisibilityPlanner(object):
 		elif point_y < origin_y: # quadrant 4
 			relative_theta = relative_theta + 2*math.pi
 
-		return relative_theta
+		# print "relative_theta:",relative_theta
+		return round(relative_theta, 2)
 
 
 	def CostOfMove(self, edge, neighbor):
@@ -569,6 +800,16 @@ class VisibilityPlanner(object):
 		neighbor_x = neighbor[0][0]
 		neighbor_y = neighbor[0][1]
 		neighbor_theta = neighbor[1]
+
+		# print "edge:",edge
+		# print "neighbor:",neighbor
+
+		# print "edge_x:",edge_x
+		# print "edge_y:",edge_y
+		# print "edge_theta:",edge_theta
+		# print "neighbor_x:",neighbor_x
+		# print "neighbor_y:",neighbor_y
+		# print "neighbor_theta:",neighbor_theta
 
 		# euclidian distance, scaled by longest possible distance to travel - diagonal
 		if edge_theta == neighbor_theta:

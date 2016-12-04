@@ -1,11 +1,11 @@
-import numpy as np
+import numpy
 import random, math
 import time
 import pygame
 
 class PlanningEnvironment(object):
 
-	def __init__(self):
+	def __init__(self, width, height, robot_radius):
 		# global table
 		# self.robot = herb.robot
 		# self.boundary_limits = [[-5., -5.], [5., 5.]]
@@ -14,7 +14,7 @@ class PlanningEnvironment(object):
 		# table = self.robot.GetEnv().ReadKinBodyXMLFile('models/objects/table.kinbody.xml')
 		# self.robot.GetEnv().Add(table)
 
-		# table_pose = np.array([[ 0, 0, -1, 1.0], 
+		# table_pose = numpy.array([[ 0, 0, -1, 1.0], 
 		#                           [-1, 0,  0, 0], 
 		#                           [ 0, 1,  0, 0], 
 		#                           [ 0, 0,  0, 1]])
@@ -22,11 +22,22 @@ class PlanningEnvironment(object):
 
 		# # goal sampling probability
 		# self.p = 0.0
-		self.BLACK = (  0,   0,   0)
-		self.WHITE = (255, 255, 255)
-		self.BLUE =  (  0,   0, 255)
-		self.GREEN = (  0, 255,   0)
-		self.RED =   (255,   0,   0)
+
+
+		self.width = width
+		self.height = height
+		self.robot_radius = robot_radius
+
+
+
+
+		self.BLACK  = (  0,   0,   0)
+		self.WHITE  = (255, 255, 255)
+		self.BLUE   = (  0,   0, 255)
+		self.GREEN  = (  0, 255,   0)
+		self.RED    = (255,   0,   0)
+		self.PURPLE = (255,   0, 255)
+
 		return
 
 	def SetGoalParameters(self, goal_config, p = 0.2):
@@ -50,7 +61,7 @@ class PlanningEnvironment(object):
 				x = round(random.uniform(lower_limits[0], upper_limits[0]),3)
 				y = round(random.uniform(lower_limits[1], upper_limits[1]),3)
 				tempTrans = self.robot.GetTransform()
-				self.robot.SetTransform(np.array([[1, 0, 0, x],
+				self.robot.SetTransform(numpy.array([[1, 0, 0, x],
 												  [0, 1, 0, y],
 												  [0, 0, 1, 0],
 												  [0, 0, 0, 1]]))
@@ -59,7 +70,7 @@ class PlanningEnvironment(object):
 					config = [x,y]
 				self.robot.SetTransform(tempTrans)
 		
-		return np.array(config)
+		return numpy.array(config)
 
 	def ComputeDistance(self, start_config, end_config):
 		#
@@ -67,7 +78,7 @@ class PlanningEnvironment(object):
 		# two configurations
 		#
 
-		dist = np.sqrt(np.square(start_config[0]-end_config[0])+np.square(start_config[1]-end_config[1]))
+		dist = numpy.sqrt(numpy.square(start_config[0]-end_config[0])+numpy.square(start_config[1]-end_config[1]))
 		return dist
 
 	def Extend(self, start_config, end_config):
@@ -90,7 +101,7 @@ class PlanningEnvironment(object):
 			x += deltaX
 			y += deltaY
 			#print i
-			self.robot.SetTransform(np.array([[1, 0, 0, x],
+			self.robot.SetTransform(numpy.array([[1, 0, 0, x],
 											  [0, 1, 0, y],
 											  [0, 0, 1, 0],
 											  [0, 0, 0, 1]]))
@@ -113,7 +124,7 @@ class PlanningEnvironment(object):
 		#
 		start_time = time.time()
 		numPartitions = 50
-		tempPath = np.array(path[len(path)-1])
+		tempPath = numpy.array(path[len(path)-1])
 
 
 		for i in range(len(path)-1,0,-1):
@@ -127,7 +138,7 @@ class PlanningEnvironment(object):
 			y -= deltaY
 
 			for j in range(0,numPartitions):
-				tempPath = np.vstack(([x,y],tempPath))
+				tempPath = numpy.vstack(([x,y],tempPath))
 				x -= deltaX
 				y -= deltaY
 
@@ -146,7 +157,7 @@ class PlanningEnvironment(object):
 						for k in range(i+1,j-1):
 							#print("org length " + str(len(path)))
 							#print("deleted node " + str(l))
-							path = np.delete(path,l,0)
+							path = numpy.delete(path,l,0)
 							#print("new length " + str(len(path)))
 						break
 				if time.time() - start_time >= timeout:
@@ -163,23 +174,20 @@ class PlanningEnvironment(object):
 
 		return path
 
-	def CheckCollision(env_config, x, y):
-		global height
-		global width
-		global robot_radius
+	def CheckCollision(self, env_config, x, y):
 		
 		for shape in env_config:
 			if shape[0].lower() == "r":
-				if CheckRobotRectangleCollision(shape, x, y):
+				if self.CheckRobotRectangleCollision(shape, x, y):
 					return True
 			elif shape[0].lower() == "l":
-				if CheckRobotLineCollision(shape, x, y):
+				if self.CheckRobotLineCollision(shape, x, y):
 					return True
 			elif shape[0].lower() == "c":
-				if CheckRobotCircleCollision(shape, x, y):
+				if self.CheckRobotCircleCollision(shape, x, y):
 					return True
 			elif shape[0].lower() == "a":
-				if CheckRobotArcCollision(shape, x, y):
+				if self.CheckRobotArcCollision(shape, x, y):
 					return True
 			else:
 				print ("Error checking collision for shape type \"" + shape[0] + "\".  Expecting R, L, C, or A.  Exiting.")
@@ -188,13 +196,10 @@ class PlanningEnvironment(object):
 		return False
 
 
-	def CheckRobotRectangleCollision(shape, x, y):
+	def CheckRobotRectangleCollision(self, shape, x, y):
 		# Rectangle contain top left, top right, bottom right, and bottom left coordinates    # Line contains start and end coordinate
-		global height
-		global width
-		global robot_radius
 		
-		print ("rectangle collision")
+		# print ("rectangle collision")
 		x1 = shape[1][0] # top left x 
 		y1 = -1*(shape[1][1]) # top left y, y is inverted because origin in pygame is top left and origin in regular coordinate system is bottom left
 		x2 = shape[2][0] # top right x 
@@ -269,23 +274,23 @@ class PlanningEnvironment(object):
 		# next check if robot is within robot_radius of edge of rectangle
 		# https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
 
-		dist_left_side = DistPointToLine(robot_x, robot_y, x1, y1, x4, y4)
-		dist_right_side = DistPointToLine(robot_x, robot_y, x2, y2, x3, y3)
-		dist_top_side = DistPointToLine(robot_x, robot_y, x3, y3, x4, y4)
-		dist_bottom_side = DistPointToLine(robot_x, robot_y, x1, y1, x2, y2)
+		dist_left_side = self.DistPointToLine(robot_x, robot_y, x1, y1, x4, y4)
+		dist_right_side = self.DistPointToLine(robot_x, robot_y, x2, y2, x3, y3)
+		dist_top_side = self.DistPointToLine(robot_x, robot_y, x3, y3, x4, y4)
+		dist_bottom_side = self.DistPointToLine(robot_x, robot_y, x1, y1, x2, y2)
 
 		# print "dist_left_side:",dist_left_side
 		# print "dist_right_side:",dist_right_side
 		# print "dist_top_side:",dist_top_side
 		# print "dist_bottom_side:",dist_bottom_side
 
-		if dist_left_side < robot_radius or dist_right_side < robot_radius or dist_top_side < robot_radius or dist_bottom_side < robot_radius:
+		if dist_left_side < self.robot_radius or dist_right_side < self.robot_radius or dist_top_side < self.robot_radius or dist_bottom_side < self.robot_radius:
 			return True
 
 
 		return False
 
-	def DistPointToLine(point_x, point_y, line1_x, line1_y, line2_x, line2_y):
+	def DistPointToLine(self, point_x, point_y, line1_x, line1_y, line2_x, line2_y):
 		numerator = abs((line2_y - line1_y) * point_x - (line2_x - line1_x) * point_y + line2_x * line1_y - line2_y * line1_x)
 		denominator = numpy.sqrt(numpy.square(line2_x - line1_x) + numpy.square(line2_y - line1_y))
 		dist = numerator / denominator
@@ -293,41 +298,35 @@ class PlanningEnvironment(object):
 		return dist
 
 
-	def CheckRobotLineCollision(shape, x, y):
+	def CheckRobotLineCollision(self, shape, x, y):
 		# Line contains start and end coordinate
-		global height
-		global width
-		global robot_radius
 		
-		print ("line collision")
+		# print ("line collision")
 		sx = shape[1][0] # start x
 		sy = shape[1][1] # start y
 		ex = shape[2][0] # end x
 		ey = shape[2][1] # end y
 
 		# create rectangle by padding line with robot_radius.  Check for collision between new rectangle and robot
-		dist = DistPointToLine(x, y, sx, sy, ex, ey)
+		dist = self.DistPointToLine(x, y, sx, sy, ex, ey)
 
-		if dist < robot_radius: # inside bar around line (line extends between infinities)
+		if dist < self.robot_radius: # inside bar around line (line extends between infinities)
 			dist_start = numpy.sqrt(numpy.square(sx - x) + numpy.square(sy - y))
 			dist_end = numpy.sqrt(numpy.square(ex - x) + numpy.square(ey - y))
 			if (x > min(sx, ex) and x < max(sx, ex)) or (y > min(sy, ey) and y < max(sy, ey)):
 				return True
-			elif dist_start < robot_radius or dist_end < robot_radius:
+			elif dist_start < self.robot_radius or dist_end < self.robot_radius:
 				return True
 
 		return False
 
 
-	def CheckRobotCircleCollision(shape, x, y):
+	def CheckRobotCircleCollision(self, shape, x, y):
 		# Circle contains coordinate of center and radius
-		global height
-		global width
-		global robot_radius
 		
 		cx = int(shape[1][0]) # center x
 		cy = int(shape[1][1])# center y
-		radius = shape[2] + robot_radius
+		radius = shape[2] + self.robot_radius
 
 		# check if distance from center to robot is less than radius of circle plus robot radius
 		dist = numpy.sqrt(numpy.square(cx - x) + numpy.square(cy - y))
@@ -337,11 +336,8 @@ class PlanningEnvironment(object):
 		return False
 
 
-	def CheckRobotArcCollision(shape, x, y):
+	def CheckRobotArcCollision(self, shape, x, y):
 		# Arc contains coordinate of center, width and height of rectangle containing the arc, start angle, and stop angle.  When added to env_config, Arc will also contain coordinate of center of subtended arc
-		global height
-		global width
-		global robot_radius
 		
 		robot_x = x
 		robot_y = -1 * y
@@ -353,7 +349,7 @@ class PlanningEnvironment(object):
 		arc_x = int(shape[1][0]) + shape_radius # center coordinate x (shape contains top left coordinate.  adding shape_radius creates arc origin/center)
 		arc_y = -1 * (int(shape[1][1]) + shape_radius) # center coordinate y (shape contains top left coordinate.  adding shape_radius creates arc origin/center)
 
-		delta_theta = 2*math.sin(float(robot_radius/2)/shape_radius)
+		delta_theta = 2*math.sin(float(self.robot_radius/2)/shape_radius)
 		new_start_angle = start_angle - delta_theta
 		new_stop_angle = stop_angle + delta_theta
 
@@ -369,7 +365,7 @@ class PlanningEnvironment(object):
 		# print "dist:",dist
 
 		# check if robot is in "crust" of arc
-		if dist < (shape_radius + robot_radius) and dist > (shape_radius - robot_radius):
+		if dist < (shape_radius + self.robot_radius) and dist > (shape_radius - self.robot_radius):
 			# check if robot is inside of "slice" of arc or outside "pie" of arc (slice is empty portion of arc, pie is full arc portion)
 
 			# calculate angle from center of arc to robot
@@ -381,7 +377,7 @@ class PlanningEnvironment(object):
 				elif robot_x < arc_x: # robot is to left of arc
 					robot_theta = math.pi
 				else: # same center
-					if robot_radius >= shape_radius: # robot is huge and eating the arc
+					if self.robot_radius >= shape_radius: # robot is huge and eating the arc
 						print ("robot eating arc")
 						return True
 					else: # robot fits in arc
@@ -407,7 +403,7 @@ class PlanningEnvironment(object):
 			return False
 
 
-	def InitializePlot(self, env_config, start_config, goal_config, width, height, robot_radius):
+	def InitializeMiniPlot(self, env_config, start_config, goal_config):
 		# R = Rectangle, L = Line, C = Circle, A = Arc, S = Start Config, G = Goal Config
 		# Rectangle contain top left, top right, bottom right, and bottom left coordinates
 		# Line contains start and end coordinate
@@ -417,7 +413,7 @@ class PlanningEnvironment(object):
 		# Goal config contains x and y coordinates of robot and theta of robot config
 
 		pygame.init()
-		self.screen = pygame.display.set_mode((width, height), pygame.DOUBLEBUF)
+		self.screen = pygame.display.set_mode((self.width, self.height), pygame.DOUBLEBUF)
 		self.background = pygame.Surface(self.screen.get_size()).convert()
 		self.background.fill((255, 255, 255))
 		# self.background = self.background.convert()
@@ -426,39 +422,39 @@ class PlanningEnvironment(object):
 		self.fps = 30
 		self.playtime = 0.0
 
-		print ("robot start config")
-		start_robot_x = int(start_config[1]) # robot x
-		start_robot_y = int(start_config[2]) # robot y
-		start_theta = float(start_config[3])# * 180 / math.pi
+		print "robot start config"
+		start_robot_x = int(start_config[0][0]) # robot x
+		start_robot_y = int(start_config[0][1]) # robot y
+		start_theta = float(start_config[1])# * 180 / math.pi
 
 		# find where ID dot of robot should be to indicate orientation
 		# http://math.libretexts.org/Core/Calculus/Precalculus/Chapter_5%3A_Trigonometric_Functions_of_Angles/5.3_Points_on_Circles_using_Sine_and_Cosine
-		start_theta_x = int((robot_radius / 2) * math.cos(start_theta)) + start_robot_x
-		start_theta_y = -1 * int((robot_radius / 2) * math.sin(start_theta)) + start_robot_y # inverting y because origin for pygame is at top left, origin in coordinate system is in bottom left
+		start_theta_x = int((self.robot_radius / 2) * math.cos(start_theta)) + start_robot_x
+		start_theta_y = -1 * int((self.robot_radius / 2) * math.sin(start_theta)) + start_robot_y # inverting y because origin for pygame is at top left, origin in coordinate system is in bottom left
 
 
-		pygame.draw.circle(self.background, self.GREEN, (start_robot_x, start_robot_y), robot_radius)
-		pygame.draw.circle(self.background, self.BLACK, (start_theta_x, start_theta_y), robot_radius/4)
+		pygame.draw.circle(self.background, self.GREEN, (start_robot_x, start_robot_y), self.robot_radius)
+		pygame.draw.circle(self.background, self.BLACK, (start_theta_x, start_theta_y), self.robot_radius/4)
 
-		print ("robot goal config")
-		goal_robot_x = int(goal_config[1]) # robot x
-		goal_robot_y = int(goal_config[2]) # robot y
-		goal_theta = float(goal_config[3])# * 180 / math.pi
+		print "robot goal config"
+		goal_robot_x = int(goal_config[0][0]) # robot x
+		goal_robot_y = int(goal_config[0][1]) # robot y
+		goal_theta = float(goal_config[1])# * 180 / math.pi
 
 		# find where ID dot of robot should be to indicate orientation
 		# http://math.libretexts.org/Core/Calculus/Precalculus/Chapter_5%3A_Trigonometric_Functions_of_Angles/5.3_Points_on_Circles_using_Sine_and_Cosine
-		goal_theta_x = int((robot_radius / 2) * math.cos(goal_theta)) + goal_robot_x
-		goal_theta_y = -1 * int((robot_radius / 2) * math.sin(goal_theta)) + goal_robot_y # inverting y because origin for pygame is at top left, origin in coordinate system is in bottom left
+		goal_theta_x = int((self.robot_radius / 2) * math.cos(goal_theta)) + goal_robot_x
+		goal_theta_y = -1 * int((self.robot_radius / 2) * math.sin(goal_theta)) + goal_robot_y # inverting y because origin for pygame is at top left, origin in coordinate system is in bottom left
 
-		pygame.draw.circle(self.background, self.RED, (goal_robot_x, goal_robot_y), robot_radius)
-		pygame.draw.circle(self.background, self.BLACK, (goal_theta_x, goal_theta_y), robot_radius/4)
+		pygame.draw.circle(self.background, self.RED, (goal_robot_x, goal_robot_y), self.robot_radius)
+		pygame.draw.circle(self.background, self.BLACK, (goal_theta_x, goal_theta_y), self.robot_radius/4)
 				
 
 
 		# Show all obstacles in environment
 		for obstacle in env_config:
 			if obstacle[0].lower() == "r":
-				print ("rectangle")
+				print "rectangle"
 
 				x1 = obstacle[1][0] # top left x
 				y1 = obstacle[1][1] # top left y
@@ -468,13 +464,11 @@ class PlanningEnvironment(object):
 				y3 = obstacle[3][1] # bottom right y
 				x4 = obstacle[4][0] # bottom left x
 				y4 = obstacle[4][1] # bottom left y
-				width = obstacle[2][0] - obstacle[1][0]
-				height = obstacle[1][1] - obstacle[2][1]
 
 				pygame.draw.polygon(self.background, self.GREEN, ((x1, y1), (x2, y2), (x3, y3), (x4, y4)))
-				
+
 			elif obstacle[0].lower() == "l":
-				print ("line")
+				print "line"
 
 				sx = obstacle[1][0] # start x
 				sy = obstacle[1][1] # start y
@@ -484,7 +478,7 @@ class PlanningEnvironment(object):
 				pygame.draw.line(self.background, self.BLACK, [sx, sy], [ex, ey])
 
 			elif obstacle[0].lower() == "c":
-				print ("circle")
+				print "circle"
 
 				cx = int(obstacle[1][0]) # center x
 				cy = int(obstacle[1][1])# center y
@@ -493,7 +487,7 @@ class PlanningEnvironment(object):
 				pygame.draw.circle(self.background, self.RED, (cx, cy), radius)
 
 			elif obstacle[0].lower() == "a":
-				print ("arc")
+				print "arc"
 
 				x = int(obstacle[1][0]) # top left x
 				y = int(obstacle[1][1]) # top left y
@@ -508,8 +502,150 @@ class PlanningEnvironment(object):
 					pygame.draw.arc(self.background, self.BLUE, [x, y, diameter, diameter], start_angle, 2*math.pi)
 
 			else:
-				print ("Unknown descriptor \"" + obstacle[0] + "\".  Expecting R, L, C, A, S, or G.  Exiting")
+				print "Unknown descriptor \"" + obstacle[0] + "\".  Expecting R, L, C, A, S, or G.  Exiting"
 				exit(0)
+				
+
+		running = True
+		while running:
+			for event in pygame.event.get():
+				if event.type == pygame.QUIT:
+					running = False 
+				elif event.type == pygame.KEYDOWN:
+					if event.key == pygame.K_ESCAPE:
+						running = False
+
+			milliseconds = self.clock.tick(self.fps)
+			self.playtime += milliseconds / 1000.0
+			# self.draw_text("FPS: {:6.3}{}PLAYTIME: {:6.3} SECONDS".format(
+						   # self.clock.get_fps(), " "*5, self.playtime))
+
+			pygame.display.flip()
+			self.screen.blit(self.background, (0, 0))
+
+		
+		# time.sleep(5)
+	def InitializePlot(self, Vertices, Edges, path, env_config, start_config, goal_config):
+		# R = Rectangle, L = Line, C = Circle, A = Arc, S = Start Config, G = Goal Config
+		# Rectangle contain top left, top right, bottom right, and bottom left coordinates
+		# Line contains start and end coordinate
+		# Circle contains coordinate of center and radius
+		# Arc contains coordinate of center, width and height of rectangle containing the arc, start angle, and stop angle.  When added to env_config, Arc will also contain coordinate of center of subtended arc
+		# Start config contains x and y coordinates of robot and theta of robot config
+		# Goal config contains x and y coordinates of robot and theta of robot config
+
+		pygame.init()
+		self.screen = pygame.display.set_mode((self.width, self.height), pygame.DOUBLEBUF)
+		self.background = pygame.Surface(self.screen.get_size()).convert()
+		self.background.fill((255, 255, 255))
+		# self.background = self.background.convert()
+		# self.screen.blit(self.background, (0, 0))
+		self.clock = pygame.time.Clock()
+		self.fps = 30
+		self.playtime = 0.0
+
+		print "robot start config"
+		start_robot_x = int(start_config[0][0]) # robot x
+		start_robot_y = int(start_config[0][1]) # robot y
+		start_theta = float(start_config[1])# * 180 / math.pi
+
+		# find where ID dot of robot should be to indicate orientation
+		# http://math.libretexts.org/Core/Calculus/Precalculus/Chapter_5%3A_Trigonometric_Functions_of_Angles/5.3_Points_on_Circles_using_Sine_and_Cosine
+		start_theta_x = int((self.robot_radius / 2) * math.cos(start_theta)) + start_robot_x
+		start_theta_y = -1 * int((self.robot_radius / 2) * math.sin(start_theta)) + start_robot_y # inverting y because origin for pygame is at top left, origin in coordinate system is in bottom left
+
+
+		pygame.draw.circle(self.background, self.GREEN, (start_robot_x, start_robot_y), self.robot_radius)
+		pygame.draw.circle(self.background, self.BLACK, (start_theta_x, start_theta_y), self.robot_radius/4)
+
+		print "robot goal config"
+		goal_robot_x = int(goal_config[0][0]) # robot x
+		goal_robot_y = int(goal_config[0][1]) # robot y
+		goal_theta = float(goal_config[1])# * 180 / math.pi
+
+		# find where ID dot of robot should be to indicate orientation
+		# http://math.libretexts.org/Core/Calculus/Precalculus/Chapter_5%3A_Trigonometric_Functions_of_Angles/5.3_Points_on_Circles_using_Sine_and_Cosine
+		goal_theta_x = int((self.robot_radius / 2) * math.cos(goal_theta)) + goal_robot_x
+		goal_theta_y = -1 * int((self.robot_radius / 2) * math.sin(goal_theta)) + goal_robot_y # inverting y because origin for pygame is at top left, origin in coordinate system is in bottom left
+
+		pygame.draw.circle(self.background, self.RED, (goal_robot_x, goal_robot_y), self.robot_radius)
+		pygame.draw.circle(self.background, self.BLACK, (goal_theta_x, goal_theta_y), self.robot_radius/4)
+				
+
+
+		# Show all obstacles in environment
+		for obstacle in env_config:
+			if obstacle[0].lower() == "r":
+				print "rectangle"
+
+				x1 = obstacle[1][0] # top left x
+				y1 = obstacle[1][1] # top left y
+				x2 = obstacle[2][0] # top right x
+				y2 = obstacle[2][1] # top right y
+				x3 = obstacle[3][0] # bottom right x
+				y3 = obstacle[3][1] # bottom right y
+				x4 = obstacle[4][0] # bottom left x
+				y4 = obstacle[4][1] # bottom left y
+
+				pygame.draw.polygon(self.background, self.GREEN, ((x1, y1), (x2, y2), (x3, y3), (x4, y4)))
+
+			elif obstacle[0].lower() == "l":
+				print "line"
+
+				sx = obstacle[1][0] # start x
+				sy = obstacle[1][1] # start y
+				ex = obstacle[2][0] # end x
+				ey = obstacle[2][1] # end y
+
+				pygame.draw.line(self.background, self.BLACK, [sx, sy], [ex, ey])
+
+			elif obstacle[0].lower() == "c":
+				print "circle"
+
+				cx = int(obstacle[1][0]) # center x
+				cy = int(obstacle[1][1])# center y
+				radius = int(obstacle[2])
+
+				pygame.draw.circle(self.background, self.RED, (cx, cy), radius)
+
+			elif obstacle[0].lower() == "a":
+				print "arc"
+
+				x = int(obstacle[1][0]) # top left x
+				y = int(obstacle[1][1]) # top left y
+				diameter = int(obstacle[2]) * 2 # stored as radius
+				start_angle = obstacle[3] 
+				stop_angle = obstacle[4] 
+
+				if start_angle < math.pi and stop_angle > math.pi: # if the circle does not wrap around the origin
+					pygame.draw.arc(self.background, self.BLUE, [x, y, diameter, diameter], start_angle, stop_angle)
+				else: # circle wraps around origin: draw arc from 0 to stop_angle and from start_angle to 2*pi
+					pygame.draw.arc(self.background, self.BLUE, [x, y, diameter, diameter], 0, stop_angle)
+					pygame.draw.arc(self.background, self.BLUE, [x, y, diameter, diameter], start_angle, 2*math.pi)
+
+			else:
+				print "Unknown descriptor \"" + obstacle[0] + "\".  Expecting R, L, C, A, S, or G.  Exiting"
+				exit(0)
+				
+
+		vertex_radius = 10
+		for node, neighbors in Vertices.items():
+			print "node",node
+			pygame.draw.circle(self.background, self.BLACK, (int(node[0]), int(node[1])), vertex_radius)
+
+		for edge, neighbors in Edges.items():
+			for neighbor in neighbors:
+				pygame.draw.line(self.background, self.BLACK, [edge[0], edge[1]], [neighbor[0], neighbor[1]])
+
+		for state in path:
+			state_x = state[0][0]
+			state_y = state[0][1]
+			theta = state[1]
+			theta_x = int((self.robot_radius / 2) * math.cos(theta)) + state_x
+			theta_y = -1 * int((self.robot_radius / 2) * math.sin(theta)) + state_y # inverting y because origin for pygame is at top left, origin in coordinate system is in bottom left
+
+			pygame.draw.circle(self.background, self.PURPLE, (int(state_x), int(state_y)), self.robot_radius, 3)
+			pygame.draw.circle(self.background, self.BLACK, (int(theta_x), int(theta_y)), self.robot_radius/4, 1)
 		
 
 		running = True
