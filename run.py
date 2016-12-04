@@ -694,15 +694,15 @@ if __name__ == "__main__":
     planning_env = PlanningEnvironment()
     planner = args.planner
     if args.planner == 'v':
-        planner = VisibilityPlanner(planning_env, visualize=visualize, width, height, robot_radius)
+        planner = VisibilityPlanner(planning_env, visualize, width, height, robot_radius)
         # # elif args.planner == 'rrt':
-        # #     planner = RRTPlanner(planning_env, visualize=visualize)
+        # #     planner = RRTPlanner(planning_env, visualize)
         # # elif args.planner == 'prm':
-        # #     planner = PRMPlanner(planning_env, visualize=visualize)
+        # #     planner = PRMPlanner(planning_env, visualize)
         # # elif args.planner == 'vrrt':
-        # #     planner = VRRTPlanner(planning_env, visualize=visualize)
+        # #     planner = VRRTPlanner(planning_env, visualize)
         # # elif args.planner == 'vprm':
-        # #     planner = VPRMPlanner(planning_env, visualize=visualize)
+        # #     planner = VPRMPlanner(planning_env, visualize)
     else:
         print 'Unknown planner option: %s' % args.planner
         exit(0)

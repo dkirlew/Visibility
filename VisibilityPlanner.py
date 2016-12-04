@@ -61,6 +61,7 @@ class VisibilityPlanner(object):
 			elif shape[0] == "A":
 				#arc
 				# self.GetArcVertices(shape, Vertices)
+				continue
 			else:
 				print "Shape not recognized. (Should be R or L or C or A)"
 				exit(0)
@@ -218,62 +219,64 @@ class VisibilityPlanner(object):
 			else:
 				if temp_key in T:
 					del T[temp_key]
+		return
 
 
 	def Clockwise(self, start_point, end_point, vertex):
 		start_x = float(start_point[0])
-        start_y = float(start_point[1])
-        end_x = float(end_point[0])
-        end_y = float(end_point[1])
-        vertex_x = float(vertex[0])
-        vertex_y = float(vertex[1])
+		start_y = float(start_point[1])
+		end_x = float(end_point[0])
+		end_y = float(end_point[1])
+		vertex_x = float(vertex[0])
+		vertex_y = float(vertex[1])
 
-        start_end_theta = self.FindRelativeAngle(start_x, start_y, end_x, end_y)
-        start_vertex_theta = self.FindRelativeAngle(start_x, start_y, vertex_x, vertex_y)
+		start_end_theta = self.FindRelativeAngle(start_x, start_y, end_x, end_y)
+		start_vertex_theta = self.FindRelativeAngle(start_x, start_y, vertex_x, vertex_y)
 
-        if start_vertex_theta > start_end_theta:
-        	return True
-        else:
-        	start_y*=-1
-        	end_y*=-1
-        	vertex_y*=-1
-        	slope = (end_y - vertex_y) / (end_x - vertex_x)
+		if start_vertex_theta > start_end_theta:
+			return True
+		else:
+			start_y*=-1
+			end_y*=-1
+			vertex_y*=-1
+			slope = (end_y - vertex_y) / (end_x - vertex_x)
 
-        	if start_end_theta > math.pi:
-        		# check if slope is positive and start point is below line from end to vertex
-        		if slope > 0:
-        			A = -(vertex_y - end_y)
-        			B = vertex_x - end_x
-        			C = -(A * end_x + B * end_y)
-        			D = A * start_x + B * start_y + C
+			if start_end_theta > math.pi:
+				# check if slope is positive and start point is below line from end to vertex
+				if slope > 0:
+					A = -(vertex_y - end_y)
+					B = vertex_x - end_x
+					C = -(A * end_x + B * end_y)
+					D = A * start_x + B * start_y + C
 
-        			if D > 0: # lies to the left
-        				return True
-        		else:
-        			A = -(end_y - vertex_y)
-        			B = end_x - vertex_x
-        			C = -(A * vertex_x + B * vertex_y)
-        			D = A * start_x + B * start_y + C
+					if D > 0: # lies to the left
+						return True
+				else:
+					A = -(end_y - vertex_y)
+					B = end_x - vertex_x
+					C = -(A * vertex_x + B * vertex_y)
+					D = A * start_x + B * start_y + C
 
-        			if D > 0:
-        				return True
-        return False
+					if D > 0:
+						return True
+		return False
 
 
 	def GetRectangleVertices(self, shape, RectangleVertices):
 		#http://math.stackexchange.com/questions/175896/finding-a-point-along-a-line-a-certain-distance-away-from-another-point
 
 		x1 = float(shape[1][0]) # top left x
-        y1 = float(shape[1][1]) # top left y
-        x2 = float(shape[2][0]) # top right x
-        y2 = float(shape[2][1]) # top right y
-        x3 = float(shape[3][0]) # bottom right x
-        y3 = float(shape[3][1]) # bottom right y
-        x4 = float(shape[4][0]) # bottom left x
-        y4 = float(shape[4][1]) # bottom left y
+		y1 = float(shape[1][1]) # top left y
+		x2 = float(shape[2][0]) # top right x
+		y2 = float(shape[2][1]) # top right y
+		x3 = float(shape[3][0]) # bottom right x
+		y3 = float(shape[3][1]) # bottom right y
+		x4 = float(shape[4][0]) # bottom left x
+		y4 = float(shape[4][1]) # bottom left y
 
 		#distance between physical vertex and buffered vertex
-		dist = math.sqrt(2)*self.robot_radius
+		print "test"
+		dist = self.robot_radius * math.sqrt(2)
 
 		vector13 = [x1-x3, y1-y3]
 		vectorMagnitude13 = math.sqrt(numpy.square(x1-x3) + numpy.square(y1-y3))
@@ -294,75 +297,78 @@ class VisibilityPlanner(object):
 		RectangleVertices[(new_x3, new_y3)] = [(new_x2, new_y2), (new_x4, new_y4)]
 		RectangleVertices[(new_x4, new_y4)] = [(new_x1, new_y1), (new_x3, new_y3)]
 
+		return
 
-    def GetLineVertices(self, shape, LineVertices):
 
-    	xs = float(shape[1][0]) # top left x
-        ys = float(shape[1][1]) # top left y
-        xe = float(shape[2][0]) # top right x
-        ye = float(shape[2][1]) # top right 
+	def GetLineVertices(self, shape, LineVertices):
+		xs = float(shape[1][0]) # top left x
+		ys = float(shape[1][1]) # top left y
+		xe = float(shape[2][0]) # top right x
+		ye = float(shape[2][1]) # top right 
 
-    	theta = self.FindRelativeAngle(xs, ys, xe, ye)
+		theta = self.FindRelativeAngle(xs, ys, xe, ye)
 
-    	if theta > math.pi/2:
-    		theta_rotated = math.pi - theta
-    	elif theta < math.pi/2:
-    		theta_rotated = -theta
+		if theta > math.pi/2:
+			theta_rotated = math.pi - theta
+		elif theta < math.pi/2:
+			theta_rotated = -theta
 
-    	xm = abs(xe-xs)/2 + min(xs, xe)
-    	ym = abs(ye-ys)/2 + min(ys, ye)
+		xm = abs(xe-xs)/2 + min(xs, xe)
+		ym = abs(ye-ys)/2 + min(ys, ye)
 
-    	xs_rotated = math.cos(theta_rotated) * (xs - xm) - math.sin(theta_rotated) * (ys - ym) + xm
-	    ys_rotated = math.sin(theta_rotated) * (xs - xm) + math.cos(theta_rotated) * (ys - ym) + ym
-	    xe_rotated = math.cos(theta_rotated) * (xe - xm) - math.sin(theta_rotated) * (ye - ym) + xm
-	    ye_rotated = math.sin(theta_rotated) * (xe - xm) + math.cos(theta_rotated) * (ye - ym) + ym
+		xs_rotated = math.cos(theta_rotated) * (xs - xm) - math.sin(theta_rotated) * (ys - ym) + xm
+		ys_rotated = math.sin(theta_rotated) * (xs - xm) + math.cos(theta_rotated) * (ys - ym) + ym
+		xe_rotated = math.cos(theta_rotated) * (xe - xm) - math.sin(theta_rotated) * (ye - ym) + xm
+		ye_rotated = math.sin(theta_rotated) * (xe - xm) + math.cos(theta_rotated) * (ye - ym) + ym
 
-	    x1 = xs_rotated - self.robot_radius
-	    y1 = ys_rotated - self.robot_radius
-	    x2 = xs_rotated + self.robot_radius
-	    y2 = ys_rotated - self.robot_radius
-	    x3 = xs_rotated + self.robot_radius
-	    y3 = ys_rotated + self.robot_radius
-	    x4 = xs_rotated - self.robot_radius
-	    y4 = ys_rotated + self.robot_radius
+		x1 = xs_rotated - self.robot_radius
+		y1 = ys_rotated - self.robot_radius
+		x2 = xs_rotated + self.robot_radius
+		y2 = ys_rotated - self.robot_radius
+		x3 = xs_rotated + self.robot_radius
+		y3 = ys_rotated + self.robot_radius
+		x4 = xs_rotated - self.robot_radius
+		y4 = ys_rotated + self.robot_radius
 
-	    x1_rotated = math.cos(theta) * (x1 - xm) - math.sin(theta) * (y1 - ym) + xm
-	    y1_rotated = math.sin(theta) * (x1 - xm) + math.cos(theta) * (y1 - ym) + ym
-	    x2_rotated = math.cos(theta) * (x2 - xm) - math.sin(theta) * (y2 - ym) + xm
-	    y2_rotated = math.sin(theta) * (x2 - xm) + math.cos(theta) * (y2 - ym) + ym
-	    x3_rotated = math.cos(theta) * (x3 - xm) - math.sin(theta) * (y3 - ym) + xm
-	    y3_rotated = math.sin(theta) * (x3 - xm) + math.cos(theta) * (y3 - ym) + ym
-	    x4_rotated = math.cos(theta) * (x4 - xm) - math.sin(theta) * (y4 - ym) + xm
-	    y4_rotated = math.sin(theta) * (x4 - xm) + math.cos(theta) * (y4 - ym) + ym
+		x1_rotated = math.cos(theta) * (x1 - xm) - math.sin(theta) * (y1 - ym) + xm
+		y1_rotated = math.sin(theta) * (x1 - xm) + math.cos(theta) * (y1 - ym) + ym
+		x2_rotated = math.cos(theta) * (x2 - xm) - math.sin(theta) * (y2 - ym) + xm
+		y2_rotated = math.sin(theta) * (x2 - xm) + math.cos(theta) * (y2 - ym) + ym
+		x3_rotated = math.cos(theta) * (x3 - xm) - math.sin(theta) * (y3 - ym) + xm
+		y3_rotated = math.sin(theta) * (x3 - xm) + math.cos(theta) * (y3 - ym) + ym
+		x4_rotated = math.cos(theta) * (x4 - xm) - math.sin(theta) * (y4 - ym) + xm
+		y4_rotated = math.sin(theta) * (x4 - xm) + math.cos(theta) * (y4 - ym) + ym
 
 		LineVertices[(x1_rotated, y1_rotated)] = [(x2_rotated, y2_rotated), (x4_rotated, y4_rotated)]
 		LineVertices[(x2_rotated, y2_rotated)] = [(x1_rotated, y1_rotated), (x3_rotated, y3_rotated)]
 		LineVertices[(x3_rotated, y3_rotated)] = [(x2_rotated, y2_rotated), (x4_rotated, y4_rotated)]
 		LineVertices[(x4_rotated, y4_rotated)] = [(x1_rotated, y1_rotated), (x3_rotated, y3_rotated)]
 
+		return
+
 
 	def GetCircleVertices(self, shape, CircleVertices):
 
 		xc = float(shape[1][0]) 
-        yc = float(shape[1][1])
-        circle_radius = float(shape[2])
+		yc = float(shape[1][1])
+		circle_radius = float(shape[2])
 
-       	buffer_dist = circle_radius + self.robot_radius
+		buffer_dist = circle_radius + self.robot_radius
 
-        x_start = xc + buffer_dist/math.cos(math.pi/8)
-        y_start = yc
+		x_start = xc + buffer_dist/math.cos(math.pi/8)
+		y_start = yc
 
-        x_curr = x_start
-        y_curr = y_start
+		x_curr = x_start
+		y_curr = y_start
 
-        CircleVertices[x_curr, y_curr] = []
+		CircleVertices[x_curr, y_curr] = []
 
-        for i in range(1, 8):
-        	theta = math.pi/4 * i
-	        x_temp = math.cos(theta) * (x_curr - xc) - math.sin(theta) * (y_curr - yc) + xc
-    		y_temp = math.sin(theta) * (x_curr - xc) + math.cos(theta) * (y_curr - yc) + yc
-    		CircleVertices[(x_temp, y_temp)] = [(x_curr, y_curr)]
-    		CircleVertices[(x_curr, y_curr)].append((x_temp, y_temp))
+		for i in range(1, 8):
+			theta = math.pi/4 * i
+			x_temp = math.cos(theta) * (x_curr - xc) - math.sin(theta) * (y_curr - yc) + xc
+			y_temp = math.sin(theta) * (x_curr - xc) + math.cos(theta) * (y_curr - yc) + yc
+			CircleVertices[(x_temp, y_temp)] = [(x_curr, y_curr)]
+			CircleVertices[(x_curr, y_curr)].append((x_temp, y_temp))
 			x_curr = x_temp
 			y_curr = y_temp
 
@@ -370,47 +376,49 @@ class VisibilityPlanner(object):
 		CircleVertices[(x_curr, y_curr)].append((x_start, y_start))
 		CircleVertices[(x_start, y_start)].append((x_curr, y_curr))
 
+		return
+
 
 	def GetArcVertices(self, shape, ArcVertices):
 
 		arc_radius = float(shape[2])
 		xc = float(shape[1][0]) + arc_radius
-        yc = float(shape[1][1]) + arc_radius
-        start_angle = float(shape[3])
-        stop_angle = float(shape[4])
-        
+		yc = float(shape[1][1]) + arc_radius
+		start_angle = float(shape[3])
+		stop_angle = float(shape[4])
 
-       	buffer_dist = arc_radius + self.robot_radius
 
-        x_start = xc + buffer_dist/math.cos(math.pi/8)
-        y_start = yc
+		buffer_dist = arc_radius + self.robot_radius
 
-        if start_angle > stop_angle:
-        	ArcVertices[(x_curr, y_curr)] = []
+		x_start = xc + buffer_dist/math.cos(math.pi/8)
+		y_start = yc
 
-        x_curr = x_start
-        y_curr = y_start
+		if start_angle > stop_angle:
+			ArcVertices[(x_curr, y_curr)] = []
 
-        # add vertices only if they're not in gap of arc
-        for i in range(1, 8):
-        	theta = math.pi/4 * i
-	        x_temp = math.cos(theta) * (x_curr - xc) - math.sin(theta) * (y_curr - yc) + xc
-    		y_temp = math.sin(theta) * (x_curr - xc) + math.cos(theta) * (y_curr - yc) + yc
+		x_curr = x_start
+		y_curr = y_start
 
-    		if start_angle > stop_angle:
-    			if theta > start_angle or theta < stop_angle:
-    				if (x_curr, y_curr) in ArcVertices.keys():
-    					ArcVertices[(x_temp, y_temp)] = [(x_curr, y_curr)]
-    					ArcVertices[(x_curr, y_curr)].append((x_temp, y_temp))
-    				else:
-    					ArcVertices[(x_temp, y_temp)] = []
-    		else:
-    			if theta > start_angle and theta < stop_angle:
-    				if (x_curr, y_curr) in ArcVertices.keys():
-    					ArcVertices[(x_temp, y_temp)] = [(x_curr, y_curr)]
-    					ArcVertices[(x_curr, y_curr)].append((x_temp, y_temp))
-    				else:
-    					ArcVertices[(x_temp, y_temp)] = []
+		# add vertices only if they're not in gap of arc
+		for i in range(1, 8):
+			theta = math.pi/4 * i
+			x_temp = math.cos(theta) * (x_curr - xc) - math.sin(theta) * (y_curr - yc) + xc
+			y_temp = math.sin(theta) * (x_curr - xc) + math.cos(theta) * (y_curr - yc) + yc
+
+			if start_angle > stop_angle:
+				if theta > start_angle or theta < stop_angle:
+					if (x_curr, y_curr) in ArcVertices.keys():
+						ArcVertices[(x_temp, y_temp)] = [(x_curr, y_curr)]
+						ArcVertices[(x_curr, y_curr)].append((x_temp, y_temp))
+					else:
+						ArcVertices[(x_temp, y_temp)] = []
+			else:
+				if theta > start_angle and theta < stop_angle:
+					if (x_curr, y_curr) in ArcVertices.keys():
+						ArcVertices[(x_temp, y_temp)] = [(x_curr, y_curr)]
+						ArcVertices[(x_curr, y_curr)].append((x_temp, y_temp))
+					else:
+						ArcVertices[(x_temp, y_temp)] = []
 
 			x_curr = x_temp
 			y_curr = y_temp
@@ -427,15 +435,17 @@ class VisibilityPlanner(object):
 			mid_angle = ((stop_angle - start_angle) / 2 + math.pi) % (2 * math.pi)
 
 
-        x_mid = math.cos(mid_angle) * (x_start - xc) - math.sin(mid_angle) * (y_start - yc) + xc
+		x_mid = math.cos(mid_angle) * (x_start - xc) - math.sin(mid_angle) * (y_start - yc) + xc
 		y_mid = math.sin(mid_angle) * (x_start - xc) + math.cos(mid_angle) * (y_start - yc) + yc
 
 		ArcVertices.append([x_mid, y_mid])
 		ArcVertices.append([xc, yc])
 
+		return
+
 	       
 	def VisibilityDijkstras(self, Vertices, Edges, start_config, goal_config):
-	        print "start DijkstraPlanner to goal"
+		print "start DijkstraPlanner to goal"
 		start_time = time.time()
 		dijkstra_edges = self.GetDijsktraEdges(Edges)
 		parent = {}
@@ -461,8 +471,8 @@ class VisibilityPlanner(object):
 
 
 		print "end DijkstraPlanner"
-	    print("Seconds to complete DijkstraPlanner: " + str(time.time()- start_time))
-	    return final_cost, self.ReconstructPath(parent, goal_id), expansions
+		print("Seconds to complete DijkstraPlanner: " + str(time.time()- start_time))
+		return final_cost, self.ReconstructPath(parent, goal_id), expansions
 
 
 	def GetDijsktraEdges(self, Edges):
@@ -535,55 +545,55 @@ class VisibilityPlanner(object):
 		point_x = float(p_x)
 		point_y = float(p_y * -1)
 
-        if origin_y != point_y:
-            relative_theta = math.atan(float(point_y - origin_y) / float(point_x - origin_x)) # radians
-        else:
-            if point_x > origin_x: # point is to right of origin
-                relative_theta = 0
-            else: # point is to left of origin
-                relative_theta = math.pi
+		if origin_y != point_y:
+			relative_theta = math.atan(float(point_y - origin_y) / float(point_x - origin_x)) # radians
+		else:
+			if point_x > origin_x: # point is to right of origin
+				relative_theta = 0
+			else: # point is to left of origin
+				relative_theta = math.pi
 
-        # theta is between -pi/4 and pi/4.  need to change to be between 0 and 2pi
-        if point_x < origin_x: # quadrant 2 and 3
-            relative_theta = relative_theta + math.pi
-        elif point_y < origin_y: # quadrant 4
-            relative_theta = relative_theta + 2*math.pi
+		# theta is between -pi/4 and pi/4.  need to change to be between 0 and 2pi
+		if point_x < origin_x: # quadrant 2 and 3
+			relative_theta = relative_theta + math.pi
+		elif point_y < origin_y: # quadrant 4
+			relative_theta = relative_theta + 2*math.pi
 
-        return relative_theta
+		return relative_theta
 
 
-   	def CostOfMove(self, edge, neighbor):
-   		cost = 0
+	def CostOfMove(self, edge, neighbor):
+		cost = 0
 
-   		edge_x = edge[0][0]
-   		edge_y = edge[0][1]
-   		edge_theta = edge[1]
-   		neighbor_x = neighbor[0][0]
-   		neighbor_y = neighbor[0][1]
-   		neighbor_theta = neighbor[1]
+		edge_x = edge[0][0]
+		edge_y = edge[0][1]
+		edge_theta = edge[1]
+		neighbor_x = neighbor[0][0]
+		neighbor_y = neighbor[0][1]
+		neighbor_theta = neighbor[1]
 
-   		# euclidian distance, scaled by longest possible distance to travel - diagonal
-   		if edge_theta == neighbor_theta:
-   			cost = numpy.sqrt(float(numpy.square(edge_x - neighbor_x) + numpy.square(edge_y - neighbor_y)))
-   			cost/= numpy.sqrt(float(numpy.square(self.height) + numpy.square(self.width)))
-   		# rotational distance, scaled by longest possible rotation - pi
-   		else:
-   			cost = abs(edge_theta - neighbor_theta)
-   			cost/= math.pi
-   			
-   		return cost
+		# euclidian distance, scaled by longest possible distance to travel - diagonal
+		if edge_theta == neighbor_theta:
+			cost = numpy.sqrt(float(numpy.square(edge_x - neighbor_x) + numpy.square(edge_y - neighbor_y)))
+			cost/= numpy.sqrt(float(numpy.square(self.height) + numpy.square(self.width)))
+		# rotational distance, scaled by longest possible rotation - pi
+		else:
+			cost = abs(edge_theta - neighbor_theta)
+			cost/= math.pi
+			
+		return cost
 
 
 	def ReconstructPath(self, parent, current):
-	    total_path = [current]
-	    while current in parent:
-	        current = parent[current]
-	        total_path.append(current)
+		total_path = [current]
+		while current in parent:
+			current = parent[current]
+			total_path.append(current)
 
-	    total_path.reverse()
-	    plan = []
-	    for node in total_path:
-	        # plan.append(self.NodeIdToGridCoord(node))
-	        plan.append(node)
+		total_path.reverse()
+		plan = []
+		for node in total_path:
+			# plan.append(self.NodeIdToGridCoord(node))
+			plan.append(node)
 
-	    return plan
+		return plan
