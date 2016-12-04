@@ -86,7 +86,7 @@ class VisibilityPlanner(object):
 			theta, w = heappop(thetas)
 
 			if self.Visible(vertex, w, prev_w, i, T, W):
-				self.AddRemoveEdges(w, Vertices, T)
+				self.AddRemoveEdges(v, w, Vertices[w], T)
 				visible_vertices.append(w)
 
 			prev_w = w
@@ -113,7 +113,7 @@ class VisibilityPlanner(object):
 		if self.CheckPathCollision(vertex, neighbor):
 			return False
 		if i == 1 or (previous_neighbor is not None and not self.PointOnEdge(vertex, neighbor, previous_neighbor)):
-			closest_edge = T.min()
+			closest_edge = T.min()[1]
 			if self.EdgesIntersect(vertex, neighbor, closest_edge):
 				return False
 			else:
@@ -208,7 +208,56 @@ class VisibilityPlanner(object):
 		return False
 
 
-	def AddRemoveEdges(self, vertex, Vertices, T):
+	def AddRemoveEdges(self, start_point, vertex, neighbors, T):
+		for neighbor in neighbors:
+			temp_key = self.planning_env.DistPointToLine(start_point[0], start_point[1], vertex[0], vertex[1], neighbor[0], neighbor[1])
+			
+			if self.Clockwise(start_point, vertex, neighbor):
+				if temp_key not in T:
+					T[temp_key] = [vertex, neighbor]
+			else:
+				if temp_key in T:
+					del T[temp_key]
+
+
+	def Clockwise(self, start_point, end_point, vertex):
+		start_x = float(start_point[0])
+        start_y = float(start_point[1])
+        end_x = float(end_point[0])
+        end_y = float(end_point[1])
+        vertex_x = float(vertex[0])
+        vertex_y = float(vertex[1])
+
+        start_end_theta = self.FindRelativeAngle(start_x, start_y, end_x, end_y)
+        start_vertex_theta = self.FindRelativeAngle(start_x, start_y, vertex_x, vertex_y)
+
+        if start_vertex_theta > start_end_theta:
+        	return True
+        else:
+        	start_y*=-1
+        	end_y*=-1
+        	vertex_y*=-1
+        	slope = (end_y - vertex_y) / (end_x - vertex_x)
+
+        	if start_end_theta > math.pi:
+        		# check if slope is positive and start point is below line from end to vertex
+        		if slope > 0:
+        			A = -(vertex_y - end_y)
+        			B = vertex_x - end_x
+        			C = -(A * end_x + B * end_y)
+        			D = A * start_x + B * start_y + C
+
+        			if D > 0: # lies to the left
+        				return True
+        		else:
+        			A = -(end_y - vertex_y)
+        			B = end_x - vertex_x
+        			C = -(A * vertex_x + B * vertex_y)
+        			D = A * start_x + B * start_y + C
+
+        			if D > 0:
+        				return True
+        return False
 
 
 	def GetRectangleVertices(self, shape, RectangleVertices):

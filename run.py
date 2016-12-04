@@ -11,9 +11,6 @@ from VisibilityPlanner import VisibilityPlanner
 # from VRRTPlanner import VRRTPlanner
 # from VPRMPlanner import VPRMPlanner
 
-height = 1000
-width = 1000
-robot_radius = 50
 
 def main(planner, planning_env, visualize, output, domain):
     global height
@@ -30,6 +27,7 @@ def main(planner, planning_env, visualize, output, domain):
     #     goal_config = numpy.array([ 3.68, -1.90,  0.00,  2.20,  0.00,  0.00,  0.00 ])
     # else:
     #     goal_config = numpy.array([2.0, -0.8])
+
     planning_env.InitializePlot(env_config, start_config, goal_config, width, height, robot_radius)
     planner.Plan(env_config, start_config, goal_config)    
 
@@ -490,9 +488,9 @@ def CheckRobotRectangleCollision(shape, x, y):
                 return True
             if Dt < 0: # lies below (might be in collision)
                 # check if point is above the BOTTOM edge of rectangle
-                Ab = -(y4 - y1)
-                Bb = x4 - x1
-                Cb = -(Ab * x1 + Bb * y1)
+                Ab = -(y3 - y4)
+                Bb = x3 - x4
+                Cb = -(Ab * x4 + Bb * y4)
                 Db = Ab * robot_x + Bb * robot_y + Cb
                 # print "Db:",Db
                 if Db >= 0: # on or above line
@@ -645,9 +643,10 @@ def CheckRobotArcCollision(shape, x, y):
 
 
 if __name__ == "__main__":
-    global width
-    global height
-    global robot_radius
+
+    height = 1000
+    width = 1000
+    robot_radius = 50
 
     parser = argparse.ArgumentParser(description='script for testing planners')
     
@@ -693,6 +692,7 @@ if __name__ == "__main__":
     #     exit(0)
     # Next setup the planner
     planning_env = PlanningEnvironment()
+    planner = args.planner
     if args.planner == 'v':
         planner = VisibilityPlanner(planning_env, visualize=visualize, width, height, robot_radius)
         # # elif args.planner == 'rrt':
