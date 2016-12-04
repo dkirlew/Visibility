@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
-import argparse, numpy, openravepy, time, math, random, ast
+import argparse, numpy, time, math, random, ast
 
 # from HerbEnvironment import HerbEnvironment
 # from SimpleEnvironment import SimpleEnvironment
 from PlanningEnvironment import PlanningEnvironment
-from VisibilityPlanner import VisibilityPlanner
+#from VisibilityPlanner import VisibilityPlanner
 # from RRTPlanner import RRTPlanner
 # from PRMPlanner import PRMPlanner
 # from VRRTPlanner import VRRTPlanner
@@ -18,23 +18,23 @@ def main(planner, planning_env, visualize, output, domain):
     global robot_radius
 
     env_config, start_config, goal_config = parse_domain(domain)#numpy.array(robot.GetCurrentConfiguration())
-    print "env_config:"
+    print ("env_config:")
     for config in env_config:
-        print str(config)
-    print "start_config:",start_config
-    print "goal_config:",goal_config
+        print (str(config))
+    print ("start_config:",start_config)
+    print ("goal_config:",goal_config)
     # if robot.name == 'herb':
     #     goal_config = numpy.array([ 3.68, -1.90,  0.00,  2.20,  0.00,  0.00,  0.00 ])
     # else:
     #     goal_config = numpy.array([2.0, -0.8])
 
     planning_env.InitializePlot(env_config, start_config, goal_config, width, height, robot_radius)
-    planner.Plan(env_config, start_config, goal_config)    
+    # planner.Plan(env_config, start_config, goal_config)    
 
     start_time = time.time()
     # # plan = planner.Plan(start_config, goal_config, visualize, output)
     # plan_short = planning_env.ShortenPath(plan)
-    print "Time to plan with ",planner,": ",(time.time()-start_time)
+    print ("Time to plan with ",planner,": ",(time.time()-start_time))
     # # traj = robot.ConvertPlanToTrajectory(plan)
     # # robot.ExecuteTrajectory(traj)
 
@@ -59,12 +59,12 @@ def parse_domain(domain_file_name):
     if domain_file_name != "r" and domain_file_name != "easy" and domain_file_name != "medium" and domain_file_name != "hard": # if not random, parse file
         for line in open(domain_file_name+str(".txt")):
             line = str(line)
-            print "line:",line
+            print ("line:",line)
             shape_env_config = []
-            print "eval",line[0]
+            print ("eval",line[0])
             if line[0].lower() == "r" or line[0].lower() =="l": # rectangle and line are [name, coord1, coord2] so can be parsed the same
                 split = line.split("|")  # must split on special char | - comma used for coordinates
-                print "split:",split
+                print ("split:",split)
                 shape_env_config.append(split[0]) # shape type
                 for entry in range(1,len(split)-1): # first entry is shape ID, last is new line character
                     coord = ast.literal_eval(split[entry])
@@ -123,7 +123,7 @@ def parse_domain(domain_file_name):
                 robot_goal_config.append(theta)
 
             else:
-                print "Unknown descriptor \"" + line[0] + "\" while loading",domain_file_name,".  Expecting R, L, C, A, S, or G.  Exiting"
+                print ("Unknown descriptor \"" + line[0] + "\" while loading",domain_file_name,".  Expecting R, L, C, A, S, or G.  Exiting")
                 exit(0)
             
             if shape_env_config != []:
@@ -147,7 +147,7 @@ def parse_domain(domain_file_name):
             difficulty = 3
             name = "hard"
         else:
-            print "Unknown file name \"" + domain_file_name + "\".  Expecting r, easy, medium, hard, or file name.  Exiting."
+            print ("Unknown file name \"" + domain_file_name + "\".  Expecting r, easy, medium, hard, or file name.  Exiting.")
             exit(0)
 
         name+=str(int(time.time())) + ".txt"
@@ -186,7 +186,7 @@ def parse_domain(domain_file_name):
         newfile.write("\n")     
 
         newfile.close()
-        print "Created new problem file",name,"."
+        print ("Created new problem file",name,".")
     return env_config, robot_start_config, robot_goal_config
 
 
@@ -274,7 +274,6 @@ def CreateLine():
     # ensures line isn't too long or too short
     dist = numpy.sqrt(numpy.square(x1 - x2) + numpy.square(y1 - y2))
     while dist > max(width, height)/2 or dist < min(width, height)/10:
-        print dist
         x1 = random.randint(0, width)
         y1 = random.randint(0, height)
         x2 = random.randint(0, width)
@@ -372,7 +371,7 @@ def CreateRobotConfig(env_config, start_config = None):
 
     # check if robot config is in collision with obstacles or if it is too close to start config
     if start_config is not None:
-        print "checking goal collisions"
+        print ("checking goal collisions")
         start_x = start_config[1]
         start_y = start_config[2]
         dist_to_start = dist = numpy.sqrt(numpy.square(x - start_x) + numpy.square(y - start_y))
@@ -382,7 +381,7 @@ def CreateRobotConfig(env_config, start_config = None):
             dist_to_start = dist = numpy.sqrt(numpy.square(x - start_x) + numpy.square(y - start_y))
             numTries+=1
     else: # check if in collision with obstacles
-        print "checking start collisions"
+        print ("checking start collisions")
         while CheckCollision(env_config, x, y):# and numTries < 10:
             x = random.randint(0 + robot_radius, width - robot_radius)
             y = random.randint(0 + robot_radius, height - robot_radius)
@@ -391,7 +390,7 @@ def CreateRobotConfig(env_config, start_config = None):
     config.append(y)
     config.append(theta)
     if numTries >= 9:
-        print "HEY NUMTRIES MAXED OUT ------------------------------------------------"
+        print ("HEY NUMTRIES MAXED OUT ------------------------------------------------")
     return config
 
 
@@ -414,7 +413,7 @@ def CheckCollision(env_config, x, y):
             if CheckRobotArcCollision(shape, x, y):
                 return True
         else:
-            print "Error checking collision for shape type \"" + shape[0] + "\".  Expecting R, L, C, or A.  Exiting."
+            print ("Error checking collision for shape type \"" + shape[0] + "\".  Expecting R, L, C, or A.  Exiting.")
             exit(0)
 
     return False
@@ -426,7 +425,7 @@ def CheckRobotRectangleCollision(shape, x, y):
     global width
     global robot_radius
     
-    print "rectangle collision"
+    print ("rectangle collision")
     x1 = shape[1][0] # top left x 
     y1 = -1*(shape[1][1]) # top left y, y is inverted because origin in pygame is top left and origin in regular coordinate system is bottom left
     x2 = shape[2][0] # top right x 
@@ -531,7 +530,7 @@ def CheckRobotLineCollision(shape, x, y):
     global width
     global robot_radius
     
-    print "line collision"
+    print ("line collision")
     sx = shape[1][0] # start x
     sy = shape[1][1] # start y
     ex = shape[2][0] # end x
@@ -617,7 +616,7 @@ def CheckRobotArcCollision(shape, x, y):
                 robot_theta = math.pi
             else: # same center
                 if robot_radius >= shape_radius: # robot is huge and eating the arc
-                    print "robot eating arc"
+                    print ("robot eating arc")
                     return True
                 else: # robot fits in arc
                     return False
@@ -666,7 +665,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     
-    openravepy.RaveInitialize(True, level=openravepy.DebugLevel.Info)
+    # openravepy.RaveInitialize(True, level=openravepy.DebugLevel.Info)
     # openravepy.misc.InitOpenRAVELogging()
 
     # if args.debug:
@@ -693,19 +692,19 @@ if __name__ == "__main__":
     # Next setup the planner
     planning_env = PlanningEnvironment()
     planner = args.planner
-    if args.planner == 'v':
-        planner = VisibilityPlanner(planning_env, visualize, width, height, robot_radius)
-        # # elif args.planner == 'rrt':
-        # #     planner = RRTPlanner(planning_env, visualize)
-        # # elif args.planner == 'prm':
-        # #     planner = PRMPlanner(planning_env, visualize)
-        # # elif args.planner == 'vrrt':
-        # #     planner = VRRTPlanner(planning_env, visualize)
-        # # elif args.planner == 'vprm':
-        # #     planner = VPRMPlanner(planning_env, visualize)
-    else:
-        print 'Unknown planner option: %s' % args.planner
-        exit(0)
+    # if args.planner == 'v':
+    #     planner = VisibilityPlanner(planning_env, visualize, width, height, robot_radius)
+    #     # # elif args.planner == 'rrt':
+    #     # #     planner = RRTPlanner(planning_env, visualize)
+    #     # # elif args.planner == 'prm':
+    #     # #     planner = PRMPlanner(planning_env, visualize)
+    #     # # elif args.planner == 'vrrt':
+    #     # #     planner = VRRTPlanner(planning_env, visualize)
+    #     # # elif args.planner == 'vprm':
+    #     # #     planner = VPRMPlanner(planning_env, visualize)
+    # else:
+    #     print ('Unknown planner option: %s' % args.planner)
+    #     exit(0)
 
 
 

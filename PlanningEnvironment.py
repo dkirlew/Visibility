@@ -182,7 +182,7 @@ class PlanningEnvironment(object):
 				if CheckRobotArcCollision(shape, x, y):
 					return True
 			else:
-				print "Error checking collision for shape type \"" + shape[0] + "\".  Expecting R, L, C, or A.  Exiting."
+				print ("Error checking collision for shape type \"" + shape[0] + "\".  Expecting R, L, C, or A.  Exiting.")
 				exit(0)
 
 		return False
@@ -194,7 +194,7 @@ class PlanningEnvironment(object):
 		global width
 		global robot_radius
 		
-		print "rectangle collision"
+		print ("rectangle collision")
 		x1 = shape[1][0] # top left x 
 		y1 = -1*(shape[1][1]) # top left y, y is inverted because origin in pygame is top left and origin in regular coordinate system is bottom left
 		x2 = shape[2][0] # top right x 
@@ -299,16 +299,13 @@ class PlanningEnvironment(object):
 		global width
 		global robot_radius
 		
-		print "line collision"
+		print ("line collision")
 		sx = shape[1][0] # start x
 		sy = shape[1][1] # start y
 		ex = shape[2][0] # end x
 		ey = shape[2][1] # end y
 
 		# create rectangle by padding line with robot_radius.  Check for collision between new rectangle and robot
-
-
-		
 		dist = DistPointToLine(x, y, sx, sy, ex, ey)
 
 		if dist < robot_radius: # inside bar around line (line extends between infinities)
@@ -385,7 +382,7 @@ class PlanningEnvironment(object):
 					robot_theta = math.pi
 				else: # same center
 					if robot_radius >= shape_radius: # robot is huge and eating the arc
-						print "robot eating arc"
+						print ("robot eating arc")
 						return True
 					else: # robot fits in arc
 						return False
@@ -429,7 +426,7 @@ class PlanningEnvironment(object):
 		self.fps = 30
 		self.playtime = 0.0
 
-		print "robot start config"
+		print ("robot start config")
 		start_robot_x = int(start_config[1]) # robot x
 		start_robot_y = int(start_config[2]) # robot y
 		start_theta = float(start_config[3])# * 180 / math.pi
@@ -443,7 +440,7 @@ class PlanningEnvironment(object):
 		pygame.draw.circle(self.background, self.GREEN, (start_robot_x, start_robot_y), robot_radius)
 		pygame.draw.circle(self.background, self.BLACK, (start_theta_x, start_theta_y), robot_radius/4)
 
-		print "robot goal config"
+		print ("robot goal config")
 		goal_robot_x = int(goal_config[1]) # robot x
 		goal_robot_y = int(goal_config[2]) # robot y
 		goal_theta = float(goal_config[3])# * 180 / math.pi
@@ -461,7 +458,7 @@ class PlanningEnvironment(object):
 		# Show all obstacles in environment
 		for obstacle in env_config:
 			if obstacle[0].lower() == "r":
-				print "rectangle"
+				print ("rectangle")
 
 				x1 = obstacle[1][0] # top left x
 				y1 = obstacle[1][1] # top left y
@@ -477,7 +474,7 @@ class PlanningEnvironment(object):
 				pygame.draw.polygon(self.background, self.GREEN, ((x1, y1), (x2, y2), (x3, y3), (x4, y4)))
 				
 			elif obstacle[0].lower() == "l":
-				print "line"
+				print ("line")
 
 				sx = obstacle[1][0] # start x
 				sy = obstacle[1][1] # start y
@@ -487,7 +484,7 @@ class PlanningEnvironment(object):
 				pygame.draw.line(self.background, self.BLACK, [sx, sy], [ex, ey])
 
 			elif obstacle[0].lower() == "c":
-				print "circle"
+				print ("circle")
 
 				cx = int(obstacle[1][0]) # center x
 				cy = int(obstacle[1][1])# center y
@@ -496,7 +493,7 @@ class PlanningEnvironment(object):
 				pygame.draw.circle(self.background, self.RED, (cx, cy), radius)
 
 			elif obstacle[0].lower() == "a":
-				print "arc"
+				print ("arc")
 
 				x = int(obstacle[1][0]) # top left x
 				y = int(obstacle[1][1]) # top left y
@@ -511,10 +508,8 @@ class PlanningEnvironment(object):
 					pygame.draw.arc(self.background, self.BLUE, [x, y, diameter, diameter], start_angle, 2*math.pi)
 
 			else:
-				print "Unknown descriptor \"" + obstacle[0] + "\".  Expecting R, L, C, A, S, or G.  Exiting"
+				print ("Unknown descriptor \"" + obstacle[0] + "\".  Expecting R, L, C, A, S, or G.  Exiting")
 				exit(0)
-
-
 		
 
 		running = True

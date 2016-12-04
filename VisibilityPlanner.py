@@ -4,7 +4,6 @@ import argparse, numpy, openravepy, time, math, random, ast
 
 from collections import defaultdict
 from heapq import heappop, heappush
-from bintree import bintree
 import heap
 
 class VisibilityPlanner(object):
@@ -63,7 +62,7 @@ class VisibilityPlanner(object):
 				# self.GetArcVertices(shape, Vertices)
 				continue
 			else:
-				print "Shape not recognized. (Should be R or L or C or A)"
+				print ("Shape not recognized. (Should be R or L or C or A)")
 				exit(0)
 
 		Vertices[self.start_config] = []
@@ -77,7 +76,7 @@ class VisibilityPlanner(object):
 
 	def VisibleVertices(self, vertex, Vertices):
 		visible_vertices = []
-		T = btree()
+		T = {}
 
 		thetas = self.FindSortedRelativeAngles(vertex, Vertices) # include start_config, goal_config
 		i = 1
@@ -114,7 +113,7 @@ class VisibilityPlanner(object):
 		if self.CheckPathCollision(vertex, neighbor):
 			return False
 		if i == 1 or (previous_neighbor is not None and not self.PointOnEdge(vertex, neighbor, previous_neighbor)):
-			closest_edge = T.min()[1]
+			closest_edge = T[min(T.keys())]
 			if self.EdgesIntersect(vertex, neighbor, closest_edge):
 				return False
 			else:
@@ -275,7 +274,6 @@ class VisibilityPlanner(object):
 		y4 = float(shape[4][1]) # bottom left y
 
 		#distance between physical vertex and buffered vertex
-		print "test"
 		dist = self.robot_radius * math.sqrt(2)
 
 		vector13 = [x1-x3, y1-y3]
@@ -445,7 +443,7 @@ class VisibilityPlanner(object):
 
 	       
 	def VisibilityDijkstras(self, Vertices, Edges, start_config, goal_config):
-		print "start DijkstraPlanner to goal"
+		print ("start DijkstraPlanner to goal")
 		start_time = time.time()
 		dijkstra_edges = self.GetDijsktraEdges(Edges)
 		parent = {}
@@ -470,7 +468,7 @@ class VisibilityPlanner(object):
 			expansions+=1
 
 
-		print "end DijkstraPlanner"
+		print ("end DijkstraPlanner")
 		print("Seconds to complete DijkstraPlanner: " + str(time.time()- start_time))
 		return final_cost, self.ReconstructPath(parent, goal_id), expansions
 
