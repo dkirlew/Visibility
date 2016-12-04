@@ -43,24 +43,27 @@ class VisibilityPlanner(object):
 		for shape in env_config:
 			if shape[0] == "R":
 				#rectangle
-				Vertices.append(self.GetRectangleVertices(shape))
+				self.GetRectangleVertices(shape, Vertices)
 
 			elif shape[0] == "L":
 				#line
+				self.GetLineVertices(shape, Vertices)
+
 			elif shape[0] == "C":
 				#circle
+				self.GetCircleVertices(shape, Vertices)
+
 			elif shape[0] == "A":
 				#arc
+				self.GetArcVertices(shape, Vertices)
 			else:
 				print "Shape not recognized. (Should be R or L or C or A)"
 				exit(0)
 		return Vertices
 
 
-	def GetRectangleVertices(self, shape):
+	def GetRectangleVertices(self, shape, RectangleVertices):
 		#http://math.stackexchange.com/questions/175896/finding-a-point-along-a-line-a-certain-distance-away-from-another-point
-
-		RectangleVertices = []
 
 		x1 = float(shape[1][0]) # top left x
         y1 = float(shape[1][1]) # top left y
@@ -72,7 +75,7 @@ class VisibilityPlanner(object):
         y4 = float(shape[4][1]) # bottom left y
 
 		#distance between physical vertex and buffered vertex
-		dist = math.sqrt(2)*50
+		dist = math.sqrt(2)*self.robot_radius
 
 		vector13 = [x1-x3, y1-y3]
 		vectorMagnitude13 = math.sqrt(numpy.square(x1-x3) + numpy.square(y1-y3))
@@ -93,7 +96,122 @@ class VisibilityPlanner(object):
 		RectangleVertices.append([new_x3, new_y3])
 		RectangleVertices.append([new_x4, new_y4])
 
-        return RectangleVertices
+
+    def GetLineVertices(self, shape, LineVertices):
+
+    	xs = float(shape[1][0]) # top left x
+        ys = float(shape[1][1]) # top left y
+        xe = float(shape[2][0]) # top right x
+        ye = float(shape[2][1]) # top right 
+
+    	theta = self.FindRelativeAngle(xs, ys, xe, ye)
+
+    	if theta > math.pi/2:
+    		theta_rotated = math.pi - theta
+    	elif theta < math.pi/2:
+    		theta_rotated = -theta
+
+    	xm = abs(xe-xs)/2 + min(xs, xe)
+    	ym = abs(ye-ys)/2 + min(ys, ye)
+
+    	xs_rotated = math.cos(theta_rotated) * (xs - xm) - math.sin(theta_rotated) * (ys - ym) + xm
+	    ys_rotated = math.sin(theta_rotated) * (xs - xm) + math.cos(theta_rotated) * (ys - ym) + ym
+	    xe_rotated = math.cos(theta_rotated) * (xe - xm) - math.sin(theta_rotated) * (ye - ym) + xm
+	    ye_rotated = math.sin(theta_rotated) * (xe - xm) + math.cos(theta_rotated) * (ye - ym) + ym
+
+	    x1 = xs_rotated - self.robot_radius
+	    y1 = ys_rotated - self.robot_radius
+	    x2 = xs_rotated + self.robot_radius
+	    y2 = ys_rotated - self.robot_radius
+	    x3 = xs_rotated + self.robot_radius
+	    y3 = ys_rotated + self.robot_radius
+	    x4 = xs_rotated - self.robot_radius
+	    y4 = ys_rotated + self.robot_radius
+
+	    x1_rotated = math.cos(theta) * (x1 - xm) - math.sin(theta) * (y1 - ym) + xm
+	    y1_rotated = math.sin(theta) * (x1 - xm) + math.cos(theta) * (y1 - ym) + ym
+	    x2_rotated = math.cos(theta) * (x2 - xm) - math.sin(theta) * (y2 - ym) + xm
+	    y2_rotated = math.sin(theta) * (x2 - xm) + math.cos(theta) * (y2 - ym) + ym
+	    x3_rotated = math.cos(theta) * (x3 - xm) - math.sin(theta) * (y3 - ym) + xm
+	    y3_rotated = math.sin(theta) * (x3 - xm) + math.cos(theta) * (y3 - ym) + ym
+	    x4_rotated = math.cos(theta) * (x4 - xm) - math.sin(theta) * (y4 - ym) + xm
+	    y4_rotated = math.sin(theta) * (x4 - xm) + math.cos(theta) * (y4 - ym) + ym
+
+		LineVertices.append(x1_rotated, y1_rotated])
+		LineVertices.append(x2_rotated, y2_rotated])
+		LineVertices.append(x3_rotated, y3_rotated])
+		LineVertices.append(x4_rotated, y4_rotated])
+
+
+	def GetCircleVertices(self, shape, CircleVertices):
+
+		xc = float(shape[1][0]) 
+        yc = float(shape[1][1])
+        circle_radius = float(shape[2])
+
+       	buffer_dist = circle_radius + self.robot_radius
+
+        x_curr = xc + buffer_dist/math.cos(math.pi/8)
+        y_curr = yc
+
+        CircleVertices.append([x_curr, y_curr])
+
+        for i in range(1, 8):
+        	theta = math.pi/4 * i
+	        x_temp = math.cos(theta) * (x_curr - xc) - math.sin(theta) * (y_curr - yc) + xc
+    		y_temp = math.sin(theta) * (x_curr - xc) + math.cos(theta) * (y_curr - yc) + yc
+    		CircleVertices.append([x_temp, y_temp])
+			x_curr = x_temp
+			y_curr = y_temp    		
+
+
+	def GetArcVertices(self, shape, ArcVertices):
+
+		arc_radius = float(shape[2])
+		xc = float(shape[1][0]) + arc_radius
+        yc = float(shape[1][1]) + arc_radius
+        start_angle = float(shape[3])
+        stop_angle = float(shape[4])
+        
+
+       	buffer_dist = arc_radius + self.robot_radius
+
+        x_start = xc + buffer_dist/math.cos(math.pi/8)
+        y_start = yc
+
+        if start_angle > stop_angle:
+        	ArcVertices.append([x_curr, y_curr])
+
+        x_curr = x_start
+        y_curr = y_start
+
+        # add vertices only if they're not in gap of arc
+        for i in range(1, 8):
+        	theta = math.pi/4 * i
+	        x_temp = math.cos(theta) * (x_curr - xc) - math.sin(theta) * (y_curr - yc) + xc
+    		y_temp = math.sin(theta) * (x_curr - xc) + math.cos(theta) * (y_curr - yc) + yc
+
+    		if start_angle > stop_angle:
+    			if theta > start_angle or theta < stop_angle:
+    				ArcVertices.append([x_temp, y_temp])
+    		else:
+    			if theta > start_angle and theta < stop_angle:
+    				ArcVertices.append([x_temp, y_temp])	
+
+			x_curr = x_temp
+			y_curr = y_temp
+
+		if start_angle > stop_angle:
+			mid_angle = stop_angle + (start_angle - stop_angle) / 2
+		else:
+			mid_angle = ((stop_angle - start_angle) / 2 + math.pi) % (2 * math.pi)
+
+
+        x_mid = math.cos(mid_angle) * (x_start - xc) - math.sin(mid_angle) * (y_start - yc) + xc
+		y_mid = math.sin(mid_angle) * (x_start - xc) + math.cos(mid_angle) * (y_start - yc) + yc
+
+		ArcVertices.append([x_mid, y_mid])
+		ArcVertices.append([xc, yc])
 
 	       
 	def VisibilityDijkstras(self, Vertices, Edges, start_config, goal_config):
