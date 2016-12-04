@@ -4,6 +4,7 @@ import argparse, numpy, openravepy, time, math, random, ast
 
 from collections import defaultdict
 from heapq import heappop, heappush
+from bintree import bintree
 import heap
 
 class VisibilityPlanner(object):
@@ -17,10 +18,14 @@ class VisibilityPlanner(object):
 
 
 	def Plan(env_config, start_config, goal_config):
-		Vertices = self.GetVertices(env_config, start_config, goal_config)
+		self.env_config = env_config
+		self.start_config = start_config
+		self.goal_config = goal_config
+
+		Vertices = self.GetVerticesDict(env_config)
 		Edges = {}
-		for vertex in Vertices: 
-			W = self.VisibleVertices(vertex, env_config, start_config, goal_config)
+		for vertex in Vertices.keys(): 
+			W = self.VisibleVertices(vertex, Vertices, start_config, goal_config)
 			for w in W:
 				if vertex in Edges:
 					Edges[vertex].append(w)
@@ -37,8 +42,8 @@ class VisibilityPlanner(object):
 		return plan
 
 
-	def GetVertices(self, env_config, start_config, goal_config):
-		Vertices = []
+	def GetVerticesDict(self, env_config):
+		Vertices = {}
 
 		for shape in env_config:
 			if shape[0] == "R":
@@ -55,11 +60,155 @@ class VisibilityPlanner(object):
 
 			elif shape[0] == "A":
 				#arc
-				self.GetArcVertices(shape, Vertices)
+				# self.GetArcVertices(shape, Vertices)
 			else:
 				print "Shape not recognized. (Should be R or L or C or A)"
 				exit(0)
+
+		Vertices[self.start_config] = []
+		Vertices[self.goal_config] = []
+
+		# dict is of form:
+		#	key = 2D vertex
+		#	val = list of adjacent 2D vertices
 		return Vertices
+
+
+	def VisibleVertices(self, vertex, Vertices):
+		visible_vertices = []
+		T = btree()
+
+		thetas = self.FindSortedRelativeAngles(vertex, Vertices) # include start_config, goal_config
+		i = 1
+		prev_w = None
+
+		while thetas:
+			theta, w = heappop(thetas)
+
+			if self.Visible(vertex, w, prev_w, i, T, W):
+				self.AddRemoveEdges(w, Vertices, T)
+				visible_vertices.append(w)
+
+			prev_w = w
+			i+=1
+
+		return visible_vertices
+
+
+	def FindSortedRelativeAngles(self, vertex, Vertices): # include start_config, goal_config
+
+		relative_angles = []
+		edge_x = edge[0]
+		edge_y = edge[1]
+
+		for neighbor in neighbors:
+			neighbor_x = neighbor[0]
+			neighbor_y = neighbor[1]
+			relative_angles.heappush(self.FindRelativeAngle(edge_x, edge_y, neighbor_x, neighbor_y), neighbor)
+
+		return relative_angles
+
+
+	def Visible(self, vertex, neighbor, previous_neighbor, i, T, W):
+		if self.CheckPathCollision(vertex, neighbor):
+			return False
+		if i == 1 or (previous_neighbor is not None and not self.PointOnEdge(vertex, neighbor, previous_neighbor)):
+			closest_edge = T.min()
+			if self.EdgesIntersect(vertex, neighbor, closest_edge):
+				return False
+			else:
+				return True
+		else:
+			if previous_neighbor is not None and previous_neighbor not in W:
+				return False
+			else:
+				for dist, edge in T.items():
+					if self.EdgesIntersect(vertex, neighbor, edge):
+						return False
+				return True
+
+
+	def CheckPathCollision(self, vertex, neighbor):
+		vertex_x = vertex[0]
+		vertex_y = vertex[1]
+		neighbor_x = neighbor[0]
+		neighbor_y = neighbor[1]
+
+		dist = numpy.sqrt(float(numpy.square(vertex_x - neighbor_x) + numpy.square(vertex_y - neighbor_y)))
+
+		for check_dist in range(0, dist + self.robot_radius / 2, self.robot_radius / 2):
+			temp_loc = self.GetPointAtDistOnLine(vertex, neighbor, check_dist)
+			if self.planning_env.CheckCollision(self.env_config, temp_loc[0], temp_loc[1]):
+				return True
+
+		return False
+
+
+	def GetPointAtDistOnLine(self, start_loc, end_loc, dist):
+		start_x = float(start_loc[0])
+		start_y = float(start_loc[1])
+		end_x = float(end_loc[0])
+		end_y = float(end_loc[1])
+
+		point = [start_x, start_y]
+
+		vector = [end_x - start_x, end_y - start_y]
+		vectorMagnitude = math.sqrt(numpy.square(end_x - start_x) + numpy.square(end_y - start_y))
+		unitVector = [vector[0]/vectorMagnitude, vector[1]/vectorMagnitude]
+
+		point[0]+=(dist * unitVector[0])
+		point[1]+=(dist * unitVector[1])
+
+		return point
+
+
+	def PointOnEdge(self, start_loc, end_loc, point):
+		start_x = float(start_loc[0])
+		start_y = float(start_loc[1])
+		end_x = float(end_loc[0])
+		end_y = float(end_loc[1])
+		point_x = float(point_loc[0])
+		point_y = float(point_loc[1])
+
+		slope = (end_y - start_y) / (end_x - start_x)
+
+		# point lies on line, so check if it lies within start and end points
+		if (point_y - start_y) == (slope * (point_x - start_x)):
+			if (start_x >= point_x and point_x >= end_x) or (end_x >= point_x and point_x >= start_x):
+				if (start_y >= point_y and point_y >= end_y) or (end_y >= point_y and point_y >= start_y):
+					return True
+
+		return False
+
+
+	def EdgesIntersect(self, edge1_start, edge1_end, edge2):
+		edge2_start = edge[0]
+		edge2_end = edge[1]
+
+		x1 = float(edge1_start[0])
+		y1 = float(edge1_start[1])
+		x2 = float(edge1_end[0])
+		y2 = float(edge1_end[1])
+		x3 = float(edge2_start[0])
+		y3 = float(edge2_start[1])
+		x4 = float(edge2_end[0])
+		y4 = float(edge2_end[1])
+
+		# https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
+		determinant = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+
+		if determinant != 0: # lines are not parallel nor coincident
+			xp = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / determinant
+			yp = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / determinant
+
+			if ((x1 >= xp and xp >= x2) or (x1 <= xp and xp <= x2)) and ((x3 >= xp and xp >= x4) or (x3 <= xp and xp <= x4)):
+				if ((y1 >= yp and yp >= y2) or (y1 <= yp and yp <= y2)) and ((y3 >= yp and yp >= y4) or (y3 <= yp and yp <= y4)):
+					return True
+
+		return False
+
+
+	def AddRemoveEdges(self, vertex, Vertices, T):
 
 
 	def GetRectangleVertices(self, shape, RectangleVertices):
@@ -91,10 +240,10 @@ class VisibilityPlanner(object):
 		[new_x2, new_y2] = [x2 + dist*unitVector24[0], y2 + dist*unitVector24[1]] 
 		[new_x4, new_y4] = [x4 - dist*unitVector24[0], y4 - dist*unitVector24[1]] 
 
-		RectangleVertices.append([new_x1, new_y1])
-		RectangleVertices.append([new_x2, new_y2])
-		RectangleVertices.append([new_x3, new_y3])
-		RectangleVertices.append([new_x4, new_y4])
+		RectangleVertices[(new_x1, new_y1)] = [(new_x2, new_y2), (new_x4, new_y4)]
+		RectangleVertices[(new_x2, new_y2)] = [(new_x1, new_y1), (new_x3, new_y3)]
+		RectangleVertices[(new_x3, new_y3)] = [(new_x2, new_y2), (new_x4, new_y4)]
+		RectangleVertices[(new_x4, new_y4)] = [(new_x1, new_y1), (new_x3, new_y3)]
 
 
     def GetLineVertices(self, shape, LineVertices):
@@ -137,10 +286,10 @@ class VisibilityPlanner(object):
 	    x4_rotated = math.cos(theta) * (x4 - xm) - math.sin(theta) * (y4 - ym) + xm
 	    y4_rotated = math.sin(theta) * (x4 - xm) + math.cos(theta) * (y4 - ym) + ym
 
-		LineVertices.append(x1_rotated, y1_rotated])
-		LineVertices.append(x2_rotated, y2_rotated])
-		LineVertices.append(x3_rotated, y3_rotated])
-		LineVertices.append(x4_rotated, y4_rotated])
+		LineVertices[(x1_rotated, y1_rotated)] = [(x2_rotated, y2_rotated), (x4_rotated, y4_rotated)]
+		LineVertices[(x2_rotated, y2_rotated)] = [(x1_rotated, y1_rotated), (x3_rotated, y3_rotated)]
+		LineVertices[(x3_rotated, y3_rotated)] = [(x2_rotated, y2_rotated), (x4_rotated, y4_rotated)]
+		LineVertices[(x4_rotated, y4_rotated)] = [(x1_rotated, y1_rotated), (x3_rotated, y3_rotated)]
 
 
 	def GetCircleVertices(self, shape, CircleVertices):
@@ -151,18 +300,26 @@ class VisibilityPlanner(object):
 
        	buffer_dist = circle_radius + self.robot_radius
 
-        x_curr = xc + buffer_dist/math.cos(math.pi/8)
-        y_curr = yc
+        x_start = xc + buffer_dist/math.cos(math.pi/8)
+        y_start = yc
 
-        CircleVertices.append([x_curr, y_curr])
+        x_curr = x_start
+        y_curr = y_start
+
+        CircleVertices[x_curr, y_curr] = []
 
         for i in range(1, 8):
         	theta = math.pi/4 * i
 	        x_temp = math.cos(theta) * (x_curr - xc) - math.sin(theta) * (y_curr - yc) + xc
     		y_temp = math.sin(theta) * (x_curr - xc) + math.cos(theta) * (y_curr - yc) + yc
-    		CircleVertices.append([x_temp, y_temp])
+    		CircleVertices[(x_temp, y_temp)] = [(x_curr, y_curr)]
+    		CircleVertices[(x_curr, y_curr)].append((x_temp, y_temp))
 			x_curr = x_temp
-			y_curr = y_temp    		
+			y_curr = y_temp
+
+
+		CircleVertices[(x_curr, y_curr)].append((x_start, y_start))
+		CircleVertices[(x_start, y_start)].append((x_curr, y_curr))
 
 
 	def GetArcVertices(self, shape, ArcVertices):
@@ -180,7 +337,7 @@ class VisibilityPlanner(object):
         y_start = yc
 
         if start_angle > stop_angle:
-        	ArcVertices.append([x_curr, y_curr])
+        	ArcVertices[(x_curr, y_curr)] = []
 
         x_curr = x_start
         y_curr = y_start
@@ -193,13 +350,27 @@ class VisibilityPlanner(object):
 
     		if start_angle > stop_angle:
     			if theta > start_angle or theta < stop_angle:
-    				ArcVertices.append([x_temp, y_temp])
+    				if (x_curr, y_curr) in ArcVertices.keys():
+    					ArcVertices[(x_temp, y_temp)] = [(x_curr, y_curr)]
+    					ArcVertices[(x_curr, y_curr)].append((x_temp, y_temp))
+    				else:
+    					ArcVertices[(x_temp, y_temp)] = []
     		else:
     			if theta > start_angle and theta < stop_angle:
-    				ArcVertices.append([x_temp, y_temp])	
+    				if (x_curr, y_curr) in ArcVertices.keys():
+    					ArcVertices[(x_temp, y_temp)] = [(x_curr, y_curr)]
+    					ArcVertices[(x_curr, y_curr)].append((x_temp, y_temp))
+    				else:
+    					ArcVertices[(x_temp, y_temp)] = []
 
 			x_curr = x_temp
 			y_curr = y_temp
+
+		if(x_curr, y_curr) in ArcVertices.keys() and (x_start, y_start) in ArcVertices.keys():
+			ArcVertices[(x_start, y_start)] = [(x_curr, y_curr)]
+			ArcVertices[(x_curr, y_curr)].append((x_start, y_start))
+
+
 
 		if start_angle > stop_angle:
 			mid_angle = stop_angle + (start_angle - stop_angle) / 2

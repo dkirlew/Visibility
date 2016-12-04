@@ -4,7 +4,6 @@ import time
 import pygame
 
 class PlanningEnvironment(object):
-    global table
 
     def __init__(self):
         # global table
@@ -164,15 +163,261 @@ class PlanningEnvironment(object):
 
         return path
 
+    def CheckCollision(env_config, x, y):
+        global height
+        global width
+        global robot_radius
+        
+        for shape in env_config:
+            if shape[0].lower() == "r":
+                if CheckRobotRectangleCollision(shape, x, y):
+                    return True
+            elif shape[0].lower() == "l":
+                if CheckRobotLineCollision(shape, x, y):
+                    return True
+            elif shape[0].lower() == "c":
+                if CheckRobotCircleCollision(shape, x, y):
+                    return True
+            elif shape[0].lower() == "a":
+                if CheckRobotArcCollision(shape, x, y):
+                    return True
+            else:
+                print "Error checking collision for shape type \"" + shape[0] + "\".  Expecting R, L, C, or A.  Exiting."
+                exit(0)
+
+        return False
+
+
+    def CheckRobotRectangleCollision(shape, x, y):
+        # Rectangle contain top left, top right, bottom right, and bottom left coordinates    # Line contains start and end coordinate
+        global height
+        global width
+        global robot_radius
+        
+        print "rectangle collision"
+        x1 = shape[1][0] # top left x 
+        y1 = -1*(shape[1][1]) # top left y, y is inverted because origin in pygame is top left and origin in regular coordinate system is bottom left
+        x2 = shape[2][0] # top right x 
+        y2 = -1*(shape[2][1]) # top right y, y is inverted because origin in pygame is top left and origin in regular coordinate system is bottom left
+        x3 = shape[3][0] # bottom right x 
+        y3 = -1*(shape[3][1]) # bottom right y , y is inverted because origin in pygame is top left and origin in regular coordinate system is bottom left
+        x4 = shape[4][0] # bottom left x 
+        y4 = -1*(shape[4][1]) # bottom left y, y is inverted because origin in pygame is top left and origin in regular coordinate system is bottom left
+        robot_x = x
+        robot_y = y * -1 # y is inverted because origin in pygame is top left and origin in regular coordinate system is bottom left
+
+
+        # print "robot_x =",robot_x
+        # print "robot_y =",robot_y
+        # print"x1 =",x1
+        # print"y1 =",y1
+        # print"x2 =",x2
+        # print"y2 =",y2
+        # print"x3 =",x3
+        # print"y3 =",y3
+        # print"x4 =",x4
+        # print"y4 =",y4
+
+        # first check if robot is within rectangle
+        # http://stackoverflow.com/questions/2752725/finding-whether-a-point-lies-inside-a-rectangle-or-not
+        # check if point is to right of LEFT edge of rectangle
+        Al = -(y4 - y1)
+        Bl = x4 - x1
+        Cl = -(Al * x1 + Bl * y1)
+        Dl = Al * robot_x + Bl * robot_y + Cl
+        Ml = -Al/Bl
+        # print "Ml:",Ml
+        # print "Dl:",Dl
+
+        if Dl == 0: # on the line
+            return True
+        if (Dl < 0 and Ml > 0) or (Dl > 0 and Ml < 0): # lies to the right (might be in collision)
+            # check if point is to the left of the RIGHT edge of rectangle
+            Ar = -(y3 - y2)
+            Br = x3 - x2
+            Cr = -(Ar * x2 + Br * y2)
+            Dr = Ar * robot_x + Br * robot_y + Cr
+            Mr = -Ar / Br
+            # print "Mr:",Mr
+            # print "Dr:",Dr
+
+            if Dr == 0: # on the line
+                return True 
+            # http://math.stackexchange.com/questions/324589/detecting-whether-a-point-is-above-or-below-a-slope
+            if (Dr < 0 and Mr < 0) or (Dr > 0 and Mr > 0): # lies to the left (might be in collision)
+                # check if the point is below the TOP edge of rectangle (keep in mind that the rectangle is now flipped below origin.  This uses the new top of the rectangle)
+                At = -(y2 - y1)
+                Bt = x2 - x1
+                Ct = -(At * x1 + Bt * y1)
+                Dt = At * robot_x + Bt * robot_y + Ct
+                # print "Dt:",Dt
+
+                if Dt == 0: # on the line
+                    return True
+                if Dt < 0: # lies below (might be in collision)
+                    # check if point is above the BOTTOM edge of rectangle
+                    Ab = -(y4 - y1)
+                    Bb = x4 - x1
+                    Cb = -(Ab * x1 + Bb * y1)
+                    Db = Ab * robot_x + Bb * robot_y + Cb
+                    # print "Db:",Db
+                    if Db >= 0: # on or above line
+                        return True
+
+        # maybe do this instead? http://www.geeksforgeeks.org/how-to-check-if-a-given-point-lies-inside-a-polygon/ 
+
+        # next check if robot is within robot_radius of edge of rectangle
+        # https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
+
+        dist_left_side = DistPointToLine(robot_x, robot_y, x1, y1, x4, y4)
+        dist_right_side = DistPointToLine(robot_x, robot_y, x2, y2, x3, y3)
+        dist_top_side = DistPointToLine(robot_x, robot_y, x3, y3, x4, y4)
+        dist_bottom_side = DistPointToLine(robot_x, robot_y, x1, y1, x2, y2)
+
+        # print "dist_left_side:",dist_left_side
+        # print "dist_right_side:",dist_right_side
+        # print "dist_top_side:",dist_top_side
+        # print "dist_bottom_side:",dist_bottom_side
+
+        if dist_left_side < robot_radius or dist_right_side < robot_radius or dist_top_side < robot_radius or dist_bottom_side < robot_radius:
+            return True
+
+
+        return False
+
+    def DistPointToLine(point_x, point_y, line1_x, line1_y, line2_x, line2_y):
+        numerator = abs((line2_y - line1_y) * point_x - (line2_x - line1_x) * point_y + line2_x * line1_y - line2_y * line1_x)
+        denominator = numpy.sqrt(numpy.square(line2_x - line1_x) + numpy.square(line2_y - line1_y))
+        dist = numerator / denominator
+
+        return dist
+
+
+    def CheckRobotLineCollision(shape, x, y):
+        # Line contains start and end coordinate
+        global height
+        global width
+        global robot_radius
+        
+        print "line collision"
+        sx = shape[1][0] # start x
+        sy = shape[1][1] # start y
+        ex = shape[2][0] # end x
+        ey = shape[2][1] # end y
+
+        # create rectangle by padding line with robot_radius.  Check for collision between new rectangle and robot
+
+
+        
+        dist = DistPointToLine(x, y, sx, sy, ex, ey)
+
+        if dist < robot_radius: # inside bar around line (line extends between infinities)
+            dist_start = numpy.sqrt(numpy.square(sx - x) + numpy.square(sy - y))
+            dist_end = numpy.sqrt(numpy.square(ex - x) + numpy.square(ey - y))
+            if (x > min(sx, ex) and x < max(sx, ex)) or (y > min(sy, ey) and y < max(sy, ey)):
+                return True
+            elif dist_start < robot_radius or dist_end < robot_radius:
+                return True
+
+        return False
+
+
+    def CheckRobotCircleCollision(shape, x, y):
+        # Circle contains coordinate of center and radius
+        global height
+        global width
+        global robot_radius
+        
+        cx = int(shape[1][0]) # center x
+        cy = int(shape[1][1])# center y
+        radius = shape[2] + robot_radius
+
+        # check if distance from center to robot is less than radius of circle plus robot radius
+        dist = numpy.sqrt(numpy.square(cx - x) + numpy.square(cy - y))
+        if dist < radius:
+            return True
+
+        return False
+
+
+    def CheckRobotArcCollision(shape, x, y):
+        # Arc contains coordinate of center, width and height of rectangle containing the arc, start angle, and stop angle.  When added to env_config, Arc will also contain coordinate of center of subtended arc
+        global height
+        global width
+        global robot_radius
+        
+        robot_x = x
+        robot_y = -1 * y
+
+        shape_radius = int(shape[2])
+        start_angle = shape[3]
+        stop_angle = shape[4]
+
+        arc_x = int(shape[1][0]) + shape_radius # center coordinate x (shape contains top left coordinate.  adding shape_radius creates arc origin/center)
+        arc_y = -1 * (int(shape[1][1]) + shape_radius) # center coordinate y (shape contains top left coordinate.  adding shape_radius creates arc origin/center)
+
+        delta_theta = 2*math.sin(float(robot_radius/2)/shape_radius)
+        new_start_angle = start_angle - delta_theta
+        new_stop_angle = stop_angle + delta_theta
+
+        dist = numpy.sqrt(float(numpy.square(arc_x - robot_x) + numpy.square(arc_y - robot_y)))
+
+        # print "shape_radius:",shape_radius
+        # print "start_angle:",start_angle
+        # print "stop_angle:",stop_angle
+        # print "arc_x:",arc_x
+        # print "arc_y:",arc_y
+        # print "robot x:",robot_x
+        # print "robot y:",robot_y
+        # print "dist:",dist
+
+        # check if robot is in "crust" of arc
+        if dist < (shape_radius + robot_radius) and dist > (shape_radius - robot_radius):
+            # check if robot is inside of "slice" of arc or outside "pie" of arc (slice is empty portion of arc, pie is full arc portion)
+
+            # calculate angle from center of arc to robot
+            if arc_y != robot_y:
+                robot_theta = math.atan(float(robot_y - arc_y) / float(robot_x - arc_x)) # radians
+            else:
+                if robot_x > arc_x: #robot is to right of arc
+                    robot_theta = 0
+                elif robot_x < arc_x: # robot is to left of arc
+                    robot_theta = math.pi
+                else: # same center
+                    if robot_radius >= shape_radius: # robot is huge and eating the arc
+                        print "robot eating arc"
+                        return True
+                    else: # robot fits in arc
+                        return False
+
+            # theta is between -pi/4 and pi/4.  need to change to be between 0 and 2pi
+            if robot_x < arc_x: # quadrant 2 and 3
+                robot_theta = robot_theta + math.pi
+            elif robot_y < arc_y: # quadrant 4
+                robot_theta = robot_theta + 2*math.pi
+
+            if new_start_angle < math.pi and new_stop_angle > math.pi: # if angle 0 bisects arc slice
+                if robot_theta <= new_start_angle or robot_theta >= new_stop_angle: # if in slice
+                    return False 
+                else:
+                    return True
+            else: # normal case
+                if robot_theta >= new_stop_angle and robot_theta <= new_start_angle: # in slice
+                    return False
+                else:
+                    return True
+        else:
+            return False
+
 
     def InitializePlot(self, env_config, start_config, goal_config, width, height, robot_radius):
-    # R = Rectangle, L = Line, C = Circle, A = Arc, S = Start Config, G = Goal Config
-    # Rectangle contain top left, top right, bottom right, and bottom left coordinates
-    # Line contains start and end coordinate
-    # Circle contains coordinate of center and radius
-    # Arc contains coordinate of center, width and height of rectangle containing the arc, start angle, and stop angle.  When added to env_config, Arc will also contain coordinate of center of subtended arc
-    # Start config contains x and y coordinates of robot and theta of robot config
-    # Goal config contains x and y coordinates of robot and theta of robot config
+        # R = Rectangle, L = Line, C = Circle, A = Arc, S = Start Config, G = Goal Config
+        # Rectangle contain top left, top right, bottom right, and bottom left coordinates
+        # Line contains start and end coordinate
+        # Circle contains coordinate of center and radius
+        # Arc contains coordinate of center, width and height of rectangle containing the arc, start angle, and stop angle.  When added to env_config, Arc will also contain coordinate of center of subtended arc
+        # Start config contains x and y coordinates of robot and theta of robot config
+        # Goal config contains x and y coordinates of robot and theta of robot config
 
         pygame.init()
         self.screen = pygame.display.set_mode((width, height), pygame.DOUBLEBUF)
