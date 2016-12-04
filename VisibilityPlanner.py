@@ -156,7 +156,11 @@ class VisibilityPlanner(object):
 
 				# if facing neighboring vertex, neighbor is that vertex
 				Edges3D[(edge, theta_edge_to_neighor)] = [(neighbor, theta_edge_to_neighor)]
+				
 				for neighbor_theta in neighbor_thetas:
+					# if facing neighboring vertex, neighbor can also be rotation towards other vertices
+					if theta_edge_to_neighor != neighbor_theta:
+						Edges3D[(edge, theta_edge_to_neighor)].append((edge, neighor_theta))
 
 					# if just arrived from vertex (have opp angle), neighbors are turning to visible vertices, including turning around pi radians
 					if (edge, (theta_edge_to_neighor + math.pi)%(2 * math.pi)) in Edges:
@@ -169,6 +173,19 @@ class VisibilityPlanner(object):
 		# key = [(x, y), theta]
 		# val = [((x_neighbor1, y_neighbor1), theta_neighbor1), ((x_neighbor2, ....]
 		return Edges3D
+
+
+	def FindRelativeAngles(self, edge, neighbors):
+		relative_angles = {}
+		edge_x = edge[0]
+		edge_y = edge[1]
+
+		for neighbor in neighbors:
+			neighbor_x = neighbor[0]
+			neighbor_y = neighbor[1]
+			relative_angles[neighbor] = self.FindRelativeAngle(edge_x, edge_y, neighbor_x, neighbor_y)
+
+		return relative_angles
 
 
 	# calculate angle from origin to point p
@@ -207,17 +224,15 @@ class VisibilityPlanner(object):
    		neighbor_y = neighbor[0][1]
    		neighbor_theta = neighbor[1]
 
-   		# euclidian distance
+   		# euclidian distance, scaled by longest possible distance to travel - diagonal
    		if edge_theta == neighbor_theta:
    			cost = numpy.sqrt(float(numpy.square(edge_x - neighbor_x) + numpy.square(edge_y - neighbor_y)))
-   		# TODO: scale cost of rotation to reasonable scale
-   		# perhaps, highest euclidian cost is diagonally across board, so highest rotation (180 degrees or pi) should be scaled to that
-   		# alternatively, rotations are rather similar, so perhaps just add 1 to each?
-   		# however, larger rotations should matter more than small...so probably scale.  but even scaling to diagonal seems large
+   			cost/= numpy.sqrt(float(numpy.square(self.height) + numpy.square(self.width)))
+   		# rotational distance, scaled by longest possible rotation - pi
    		else:
    			cost = abs(edge_theta - neighbor_theta)
-   			# cost = abs(edge_theta - neighbor_theta) * (numpy.sqrt(float(numpy.square(self.height) + numpy.square(self.width)))) / math.pi
-
+   			cost/= math.pi
+   			
    		return cost
 
 
