@@ -111,7 +111,7 @@ class VisibilityPlanner(object):
 		return W
 
 
-	def FindSortedRelativeAngles(self, vertex, Vertices): # include start_config, goal_config
+	def FindSortedRelativeAngles(self, vertex, Vertices): 
 		# print "vertex:", vertex
 		relative_angles = []
 		vertex_x = vertex[0]
@@ -121,7 +121,7 @@ class VisibilityPlanner(object):
 		goal_x = self.goal_config[0][0]
 		goal_y = self.goal_config[0][1]
 
-
+		# Vertices includes start_config and goal_config
 		for neighbor, val in Vertices.items():
 			if neighbor != vertex:
 				# print "neighbor:",neighbor
@@ -136,14 +136,6 @@ class VisibilityPlanner(object):
 				dist = numpy.sqrt(float(numpy.square(vertex_x - neighbor_x) + numpy.square(vertex_y - neighbor_y)))
 
 				heappush(relative_angles, ((relative_angle, dist), neighbor))
-
-		relative_angle = self.FindRelativeAngle(vertex_x, vertex_y, start_x, start_y)
-		dist = numpy.sqrt(float(numpy.square(vertex_x - start_x) + numpy.square(vertex_y - start_y)))
-		heappush(relative_angles, ((relative_angle, dist), (start_x, start_y)))
-
-		relative_angle = self.FindRelativeAngle(vertex_x, vertex_y, goal_x, goal_y)
-		dist = numpy.sqrt(float(numpy.square(vertex_x - goal_x) + numpy.square(vertex_y - goal_y)))
-		heappush(relative_angles, ((relative_angle, dist), (goal_x, goal_y)))
 
 		return relative_angles
 
@@ -183,7 +175,7 @@ class VisibilityPlanner(object):
 
 		dist = numpy.sqrt(float(numpy.square(vertex_x - neighbor_x) + numpy.square(vertex_y - neighbor_y)))
 		check_dist = 0.0
-		while check_dist <= dist + self.robot_radius / 2:
+		while check_dist <= dist:
 			temp_loc = self.GetPointAtDistOnLine(vertex, neighbor, check_dist)
 			if self.planning_env.CheckCollision(self.env_config, temp_loc[0], temp_loc[1]):
 				return True
@@ -322,10 +314,10 @@ class VisibilityPlanner(object):
 		y4 = float(shape[4][1]) # bottom left y
 
 
-		print "x1:",x1,"y1:",y1
-		print "x2:",x2,"y2:",y2
-		print "x3:",x3,"y3:",y3
-		print "x4:",x4,"y4:",y4
+		# print "x1:",x1,"y1:",y1
+		# print "x2:",x2,"y2:",y2
+		# print "x3:",x3,"y3:",y3
+		# print "x4:",x4,"y4:",y4
 
 		xm = abs(x1 - x3) / 2 + min(x1, x3)
 		ym = abs(y1 - y3) / 2 + min(y1, y3)
@@ -333,12 +325,12 @@ class VisibilityPlanner(object):
 		x_side = abs(x1 - x2) / 2 + min(x1, x2)
 		y_side = abs(y1 - y2) / 2 + min(y1, y2)
 
-		print "xm:",xm,"ym:",ym
+		# print "xm:",xm,"ym:",ym
 
-		theta = self.FindRelativeAngle(x_side, y_side, xm, ym)
+		theta = self.FindRelativeAngle(x_side, y_side, xm, ym, False)
 		theta_rotated = -theta
 
-		print "theta:",theta
+		# print "theta:",theta
 
 
 		x1_rotated = round(math.cos(theta_rotated) * (x1 - xm) - math.sin(theta_rotated) * (y1 - ym) + xm, 2)
@@ -367,10 +359,10 @@ class VisibilityPlanner(object):
 		buffer_x4_rotated = x4_rotated + self.robot_radius
 		buffer_y4_rotated = y4_rotated + self.robot_radius
 
-		print "buffer_x1_rotated:",buffer_x1_rotated,"buffer_y1_rotated:",buffer_y1_rotated
-		print "buffer_x2_rotated:",buffer_x2_rotated,"buffer_y2_rotated:",buffer_y2_rotated
-		print "buffer_x3_rotated:",buffer_x3_rotated,"buffer_y3_rotated:",buffer_y3_rotated
-		print "buffer_x4_rotated:",buffer_x4_rotated,"buffer_y4_rotated:",buffer_y4_rotated
+		# print "buffer_x1_rotated:",buffer_x1_rotated,"buffer_y1_rotated:",buffer_y1_rotated
+		# print "buffer_x2_rotated:",buffer_x2_rotated,"buffer_y2_rotated:",buffer_y2_rotated
+		# print "buffer_x3_rotated:",buffer_x3_rotated,"buffer_y3_rotated:",buffer_y3_rotated
+		# print "buffer_x4_rotated:",buffer_x4_rotated,"buffer_y4_rotated:",buffer_y4_rotated
 
 
 
@@ -383,10 +375,10 @@ class VisibilityPlanner(object):
 		new_x4 = round(math.cos(theta) * (buffer_x4_rotated - xm) - math.sin(theta) * (buffer_y4_rotated - ym) + xm, 2)
 		new_y4 = round(math.sin(theta) * (buffer_x4_rotated - xm) + math.cos(theta) * (buffer_y4_rotated - ym) + ym, 2)
 
-		print "new_x1:",new_x1,"new_y1:",new_y1
-		print "new_x2:",new_x2,"new_y2:",new_y2
-		print "new_x3:",new_x3,"new_y3:",new_y3
-		print "new_x4:",new_x4,"new_y4:",new_y4
+		# print "new_x1:",new_x1,"new_y1:",new_y1
+		# print "new_x2:",new_x2,"new_y2:",new_y2
+		# print "new_x3:",new_x3,"new_y3:",new_y3
+		# print "new_x4:",new_x4,"new_y4:",new_y4
 
 
 
@@ -424,7 +416,7 @@ class VisibilityPlanner(object):
 		# print "xs:",xs,"ys:",ys
 		# print "xe:",xe,"ye:",ye
 
-		theta = self.FindRelativeAngle(xs, ys, xe, ye)
+		theta = self.FindRelativeAngle(xs, ys, xe, ye, False)
 
 		# print "theta:",theta
 
@@ -765,7 +757,7 @@ class VisibilityPlanner(object):
 
 
 	# calculate angle from origin to point p
-	def FindRelativeAngle(self, o_x, o_y, p_x, p_y):
+	def FindRelativeAngle(self, o_x, o_y, p_x, p_y, should_round = True):
 
 		# y axis is flipped
 		origin_x = float(o_x)
@@ -788,7 +780,10 @@ class VisibilityPlanner(object):
 			relative_theta = relative_theta + 2*math.pi
 
 		# print "relative_theta:",relative_theta
-		return round(relative_theta, 2)
+		if should_round:
+			return round(relative_theta, 2)
+		else:
+			return relative_theta
 
 
 	def CostOfMove(self, edge, neighbor):
@@ -824,6 +819,7 @@ class VisibilityPlanner(object):
 
 
 	def ReconstructPath(self, parent, current):
+		print "final plan"
 		total_path = [current]
 		while current in parent:
 			current = parent[current]
@@ -833,6 +829,7 @@ class VisibilityPlanner(object):
 		plan = []
 		for node in total_path:
 			# plan.append(self.NodeIdToGridCoord(node))
+			print "node in plan:",node
 			plan.append(node)
 
 		return plan

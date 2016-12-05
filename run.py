@@ -30,7 +30,7 @@ def main(planner, planning_env, visualize, output, domain):
 
     start_x = start[1]
     start_y = start[2]
-    start_theta = goal[3]
+    start_theta = start[3]
     goal_x = goal[1]
     goal_y = goal[2]
     goal_theta = goal[3]
@@ -48,7 +48,7 @@ def main(planner, planning_env, visualize, output, domain):
     start_time = time.time()
     # # plan = planner.Plan(start_config, goal_config, visualize, output)
     # plan_short = planning_env.ShortenPath(plan)
-    print ("Time to plan with ",planner,": ",(time.time()-start_time))
+    print "Time to plan with ",str(planner),": ",(time.time()-start_time)
     # # traj = robot.ConvertPlanToTrajectory(plan)
     # # robot.ExecuteTrajectory(traj)
 
@@ -514,10 +514,10 @@ def CheckRobotRectangleCollision(shape, x, y):
     # next check if robot is within robot_radius of edge of rectangle
     # https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
 
-    dist_left_side = DistPointToLine(robot_x, robot_y, x1, y1, x4, y4)
-    dist_right_side = DistPointToLine(robot_x, robot_y, x2, y2, x3, y3)
-    dist_top_side = DistPointToLine(robot_x, robot_y, x3, y3, x4, y4)
-    dist_bottom_side = DistPointToLine(robot_x, robot_y, x1, y1, x2, y2)
+    dist_left_side = DistPointToLineSegment(robot_x, robot_y, x1, y1, x4, y4)
+    dist_right_side = DistPointToLineSegment(robot_x, robot_y, x2, y2, x3, y3)
+    dist_top_side = DistPointToLineSegment(robot_x, robot_y, x3, y3, x4, y4)
+    dist_bottom_side = DistPointToLineSegment(robot_x, robot_y, x1, y1, x2, y2)
 
     # print "dist_left_side:",dist_left_side
     # print "dist_right_side:",dist_right_side
@@ -534,6 +534,19 @@ def DistPointToLine(point_x, point_y, line1_x, line1_y, line2_x, line2_y):
     numerator = abs((line2_y - line1_y) * point_x - (line2_x - line1_x) * point_y + line2_x * line1_y - line2_y * line1_x)
     denominator = numpy.sqrt(numpy.square(line2_x - line1_x) + numpy.square(line2_y - line1_y))
     dist = numerator / denominator
+
+    return dist
+
+
+def DistPointToLineSegment(point_x, point_y, line1_x, line1_y, line2_x, line2_y):
+    if ((line1_x >= point_x and point_x >= line2_x) or (line1_x <= point_x and point_x <= line2_x)) and ((line1_y >= point_y and point_y >= line2_y) or (line1_y <= point_y and point_y <= line2_y)):
+        numerator = abs((line2_y - line1_y) * point_x - (line2_x - line1_x) * point_y + line2_x * line1_y - line2_y * line1_x)
+        denominator = numpy.sqrt(numpy.square(line2_x - line1_x) + numpy.square(line2_y - line1_y))
+        dist = numerator / denominator
+    else:
+        dist_line1 = numpy.sqrt(numpy.square(point_x - line1_x) + numpy.square(point_y - line1_y))
+        dist_line2 = numpy.sqrt(numpy.square(point_x - line2_x) + numpy.square(point_y - line2_y))
+        dist = min(dist_line1, dist_line2)
 
     return dist
 

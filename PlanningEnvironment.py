@@ -37,6 +37,7 @@ class PlanningEnvironment(object):
 		self.GREEN  = (  0, 255,   0)
 		self.RED    = (255,   0,   0)
 		self.PURPLE = (255,   0, 255)
+		self.ORANGE = (255,  69,   0)
 
 		return
 
@@ -261,9 +262,9 @@ class PlanningEnvironment(object):
 					return True
 				if Dt < 0: # lies below (might be in collision)
 					# check if point is above the BOTTOM edge of rectangle
-					Ab = -(y4 - y1)
-					Bb = x4 - x1
-					Cb = -(Ab * x1 + Bb * y1)
+					Ab = -(y3 - y4)
+					Bb = x3 - x4
+					Cb = -(Ab * x4 + Bb * y4)
 					Db = Ab * robot_x + Bb * robot_y + Cb
 					# print "Db:",Db
 					if Db >= 0: # on or above line
@@ -274,17 +275,17 @@ class PlanningEnvironment(object):
 		# next check if robot is within robot_radius of edge of rectangle
 		# https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
 
-		dist_left_side = self.DistPointToLine(robot_x, robot_y, x1, y1, x4, y4)
-		dist_right_side = self.DistPointToLine(robot_x, robot_y, x2, y2, x3, y3)
-		dist_top_side = self.DistPointToLine(robot_x, robot_y, x3, y3, x4, y4)
-		dist_bottom_side = self.DistPointToLine(robot_x, robot_y, x1, y1, x2, y2)
+		dist_left_side = self.PointCloseToLineSegment(robot_x, robot_y, x1, y1, x4, y4)
+		dist_right_side = self.PointCloseToLineSegment(robot_x, robot_y, x2, y2, x3, y3)
+		dist_top_side = self.PointCloseToLineSegment(robot_x, robot_y, x3, y3, x4, y4)
+		dist_bottom_side = self.PointCloseToLineSegment(robot_x, robot_y, x1, y1, x2, y2)
 
 		# print "dist_left_side:",dist_left_side
 		# print "dist_right_side:",dist_right_side
 		# print "dist_top_side:",dist_top_side
 		# print "dist_bottom_side:",dist_bottom_side
 
-		if dist_left_side < self.robot_radius or dist_right_side < self.robot_radius or dist_top_side < self.robot_radius or dist_bottom_side < self.robot_radius:
+		if dist_left_side or dist_right_side or dist_top_side or dist_bottom_side :
 			return True
 
 
@@ -296,6 +297,91 @@ class PlanningEnvironment(object):
 		dist = numerator / denominator
 
 		return dist
+
+
+	def PointCloseToLineSegment(self, point_x, point_y, line1_x, line1_y, line2_x, line2_y):
+		mid_x = abs(line2_x - line1_x) / 2 + min(line1_x, line2_x)
+		mid_y = abs(line2_y - line1_y) / 2 + min(line1_y, line2_y)
+
+		if line1_x < line2_x:
+			left_x = line1_x
+			left_y = line1_y
+			right_x = line2_x
+			right_y = line2_y
+		else:
+			left_x = line2_x
+			left_y = line2_y
+			right_x = line1_x
+			right_y = line1_y
+
+
+
+		theta = self.FindRelativeAngle(left_x, left_y, mid_x, mid_y, False)
+		theta_rotated = -theta
+
+		xl_rotated = math.cos(theta_rotated) * (left_x - mid_x) - math.sin(theta_rotated) * (left_y - mid_y) + mid_x
+		yl_rotated = math.sin(theta_rotated) * (left_x - mid_x) + math.cos(theta_rotated) * (left_y - mid_y) + mid_y
+		xr_rotated = math.cos(theta_rotated) * (right_x - mid_x) - math.sin(theta_rotated) * (right_y - mid_y) + mid_x
+		yr_rotated = math.sin(theta_rotated) * (right_x - mid_x) + math.cos(theta_rotated) * (right_y - mid_y) + mid_y
+		xp_rotated = math.cos(theta_rotated) * (point_x - mid_x) - math.sin(theta_rotated) * (point_y - mid_y) + mid_x
+		yp_rotated = math.sin(theta_rotated) * (point_x - mid_x) + math.cos(theta_rotated) * (point_y - mid_y) + mid_y
+
+
+
+		if xl_rotated < xp_rotated and xp_rotated < xr_rotated:
+			if abs(yp_rotated - yl_rotated) < (self.robot_radius - 0.5):
+				# print "in box"
+				# print "xl_rotated",xl_rotated
+				# print "yl_rotated",yl_rotated
+				# print "xr_rotated",xr_rotated
+				# print "yr_rotated",yr_rotated
+				# print "xp_rotated",xp_rotated
+				# print "yp_rotated",yp_rotated
+				return True
+		else:
+			dist_left = numpy.sqrt(float(numpy.square(xp_rotated - xl_rotated) + numpy.square(xp_rotated - yl_rotated)))
+			dist_right = numpy.sqrt(float(numpy.square(xp_rotated - yr_rotated) + numpy.square(xp_rotated - xr_rotated)))
+			if min(dist_left, dist_right) < (self.robot_radius - 0.5):
+				# print "in sides"
+				# print "xl_rotated",xl_rotated
+				# print "yl_rotated",yl_rotated
+				# print "xr_rotated",xr_rotated
+				# print "yr_rotated",yr_rotated
+				# print "xp_rotated",xp_rotated
+				# print "yp_rotated",yp_rotated
+				return True
+
+		return False
+
+
+	# calculate angle from origin to point p
+	def FindRelativeAngle(self, o_x, o_y, p_x, p_y, should_round = True):
+
+		# y axis is flipped
+		origin_x = float(o_x)
+		origin_y = float(o_y)
+		point_x = float(p_x)
+		point_y = float(p_y)
+
+		if origin_y != point_y:
+			relative_theta = math.atan(float(point_y - origin_y) / float(point_x - origin_x)) # radians
+		else:
+			if point_x > origin_x: # point is to right of origin
+				relative_theta = 0
+			else: # point is to left of origin
+				relative_theta = math.pi
+
+		# theta is between -pi/4 and pi/4.  need to change to be between 0 and 2pi
+		if point_x < origin_x: # quadrant 2 and 3
+			relative_theta = relative_theta + math.pi
+		elif point_y < origin_y: # quadrant 4
+			relative_theta = relative_theta + 2*math.pi
+
+		# print "relative_theta:",relative_theta
+		if should_round:
+			return round(relative_theta, 2)
+		else:
+			return relative_theta
 
 
 	def CheckRobotLineCollision(self, shape, x, y):
@@ -523,8 +609,7 @@ class PlanningEnvironment(object):
 			pygame.display.flip()
 			self.screen.blit(self.background, (0, 0))
 
-		
-		# time.sleep(5)
+
 	def InitializePlot(self, Vertices, Edges, path, env_config, start_config, goal_config):
 		# R = Rectangle, L = Line, C = Circle, A = Arc, S = Start Config, G = Goal Config
 		# Rectangle contain top left, top right, bottom right, and bottom left coordinates
@@ -547,7 +632,8 @@ class PlanningEnvironment(object):
 		print "robot start config"
 		start_robot_x = int(start_config[0][0]) # robot x
 		start_robot_y = int(start_config[0][1]) # robot y
-		start_theta = float(start_config[1])# * 180 / math.pi
+		start_theta = -1 * float(start_config[1])# * 180 / math.pi
+		print "start_theta:",start_theta
 
 		# find where ID dot of robot should be to indicate orientation
 		# http://math.libretexts.org/Core/Calculus/Precalculus/Chapter_5%3A_Trigonometric_Functions_of_Angles/5.3_Points_on_Circles_using_Sine_and_Cosine
@@ -561,7 +647,8 @@ class PlanningEnvironment(object):
 		print "robot goal config"
 		goal_robot_x = int(goal_config[0][0]) # robot x
 		goal_robot_y = int(goal_config[0][1]) # robot y
-		goal_theta = float(goal_config[1])# * 180 / math.pi
+		goal_theta = -1 * float(goal_config[1])# * 180 / math.pi
+		print "goal_theta:",goal_theta
 
 		# find where ID dot of robot should be to indicate orientation
 		# http://math.libretexts.org/Core/Calculus/Precalculus/Chapter_5%3A_Trigonometric_Functions_of_Angles/5.3_Points_on_Circles_using_Sine_and_Cosine
@@ -597,7 +684,7 @@ class PlanningEnvironment(object):
 				ex = obstacle[2][0] # end x
 				ey = obstacle[2][1] # end y
 
-				pygame.draw.line(self.background, self.BLACK, [sx, sy], [ex, ey])
+				pygame.draw.line(self.background, self.BLACK, [sx, sy], [ex, ey], 4)
 
 			elif obstacle[0].lower() == "c":
 				print "circle"
@@ -635,17 +722,18 @@ class PlanningEnvironment(object):
 
 		for edge, neighbors in Edges.items():
 			for neighbor in neighbors:
-				pygame.draw.line(self.background, self.BLACK, [edge[0], edge[1]], [neighbor[0], neighbor[1]])
+				pygame.draw.line(self.background, self.ORANGE, [edge[0], edge[1]], [neighbor[0], neighbor[1]])
 
 		for state in path:
 			state_x = state[0][0]
 			state_y = state[0][1]
-			theta = state[1]
-			theta_x = int((self.robot_radius / 2) * math.cos(theta)) + state_x
-			theta_y = -1 * int((self.robot_radius / 2) * math.sin(theta)) + state_y # inverting y because origin for pygame is at top left, origin in coordinate system is in bottom left
+			state_theta = -1 * state[1]
+			print "state:",state_x,state_y,state_theta
+			theta_x = int((self.robot_radius / 2) * math.cos(state_theta)) + state_x
+			theta_y = -1 * int((self.robot_radius / 2) * math.sin(state_theta)) + state_y # inverting y because origin for pygame is at top left, origin in coordinate system is in bottom left
 
 			pygame.draw.circle(self.background, self.PURPLE, (int(state_x), int(state_y)), self.robot_radius, 3)
-			pygame.draw.circle(self.background, self.BLACK, (int(theta_x), int(theta_y)), self.robot_radius/4, 1)
+			pygame.draw.circle(self.background, self.BLACK, (int(theta_x), int(theta_y)), self.robot_radius/3, 1)
 		
 
 		running = True
