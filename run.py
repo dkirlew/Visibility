@@ -39,8 +39,6 @@ def main(planner, planning_env, visualize, output, domain):
 
     goal_config = ((goal_x, goal_y), goal_theta)
 
-
-
     Vertices, Edges, path = planner.Plan(env_config, start_config, goal_config)    
     planning_env.InitializePlot(Vertices, Edges, path, env_config, start_config, goal_config)
     # planning_env.InitializeMiniPlot(env_config, start_config, goal_config)

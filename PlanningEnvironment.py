@@ -393,18 +393,18 @@ class PlanningEnvironment(object):
 		ex = shape[2][0] # end x
 		ey = shape[2][1] # end y
 
-		# create rectangle by padding line with robot_radius.  Check for collision between new rectangle and robot
-		dist = self.DistPointToLine(x, y, sx, sy, ex, ey)
+		# # create rectangle by padding line with robot_radius.  Check for collision between new rectangle and robot
+		# dist = self.DistPointToLine(x, y, sx, sy, ex, ey)
 
-		if dist < self.robot_radius: # inside bar around line (line extends between infinities)
-			dist_start = numpy.sqrt(numpy.square(sx - x) + numpy.square(sy - y))
-			dist_end = numpy.sqrt(numpy.square(ex - x) + numpy.square(ey - y))
-			if (x > min(sx, ex) and x < max(sx, ex)) or (y > min(sy, ey) and y < max(sy, ey)):
-				return True
-			elif dist_start < self.robot_radius or dist_end < self.robot_radius:
-				return True
+		# if dist < self.robot_radius: # inside bar around line (line extends between infinities)
+		# 	dist_start = numpy.sqrt(numpy.square(sx - x) + numpy.square(sy - y))
+		# 	dist_end = numpy.sqrt(numpy.square(ex - x) + numpy.square(ey - y))
+		# 	if (x > min(sx, ex) and x < max(sx, ex)) or (y > min(sy, ey) and y < max(sy, ey)):
+		# 		return True
+		# 	elif dist_start < self.robot_radius or dist_end < self.robot_radius:
+		# 		return True
 
-		return False
+		return self.PointCloseToLineSegment(x, y, sx, sy, ex, ey)
 
 
 	def CheckRobotCircleCollision(self, shape, x, y):

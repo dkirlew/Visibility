@@ -589,12 +589,22 @@ class VisibilityPlanner(object):
 		dijkstra_edges = self.GetDijsktraEdges(Edges)
 		parent = {}
 
+		test = ((434.55, 672.28), 4.15)
+
+		if test in dijkstra_edges:
+			print "totes in there"
+		else:
+			print "whaaaaa?"
+
+
+
 		A = {} #[None] * len(dijkstra_edges)
 		queue = [(0, self.start_config)]
 		expansions = 0
 
 		while queue:
 			cost, vertex1 = heappop(queue)
+			print "popped vertex1:",vertex1,"cost:",cost
 
 			if vertex1 == self.goal_config:
 				final_cost = cost
@@ -602,15 +612,18 @@ class VisibilityPlanner(object):
 
 			# if A[vertex1] is None:
 			if vertex1 not in A.keys():
+				print "not in A:"
 				A[vertex1] = cost
 				vertex1_dict = dijkstra_edges[vertex1]
 				# print "vertex1_dict:",vertex1_dict
 				for vertex2, temp_cost in vertex1_dict.items():
 					# if A[vertex2] is None:
 					if vertex2 not in A.keys():
+						print "\tvertex2:",vertex2,"added cost:",(temp_cost + cost)
 						heappush(queue, (cost + temp_cost, vertex2))
 						parent[vertex2] = vertex1
 			expansions+=1
+			queue.sort()
 
 
 		print ("end DijkstraPlanner")
@@ -621,10 +634,29 @@ class VisibilityPlanner(object):
 	def GetDijsktraEdges(self, Edges):
 		dijkstra_edges = {}
 		self.AngleDict = {}
+		print "---------------------------------------------------------------------------"
+		print "Edges:"
+		print Edges
+		print "--------------------------------------------------------"
 		Edges3D = self.Get3DEdges(Edges) # dict of format [(x, y), theta] = [((x_neighbor1, y_neighbor1), theta_neighbor1]
+		print "---------------------------------------------------------------------------"
+		print "Edges3D:"
+		print Edges3D
+		print "---------------------------------------------------------------------------"
+		
+
+
+		test = ((434.55, 672.28), 4.15)
+
 
 		for edge, neighbors in Edges3D.items():
 			temp_edges = {}
+
+			if test == edge:
+				print "totes added"
+			else:
+				print "srsly?"
+
 			for neighbor in neighbors:
 				temp_edges[neighbor] = self.CostOfMove(edge, neighbor)
 			# print "edge in dict dict:", edge
@@ -658,38 +690,57 @@ class VisibilityPlanner(object):
 			# print "edge or vertex v is:",edge
 			neighbor_thetas = self.FindRelativeAngles(edge, neighbors)
 
+			if edge == (517.28, 728.45):
+				print "now debugging"
+				print "neighbors of p1:",neighbors
+				debug = True
+			else:
+				debug = False
+
 			for neighbor in neighbors:
 				theta_edge_to_neighbor = neighbor_thetas[neighbor]
 				# print "theta_edge_to_neighbor:",theta_edge_to_neighbor
 
 				if edge != goal2D and edge != start2D:
-					# if facing neighboring vertex, neighbor is that vertex
-					if (edge, theta_edge_to_neighbor) not in Edges:
-						Edges3D[(edge, theta_edge_to_neighbor)] = [(neighbor, theta_edge_to_neighbor)]
-					else:
-						Edges3D[(edge, theta_edge_to_neighbor)].append((neighbor, theta_edge_to_neighbor))
+					if neighbor != start2D: # do not 1. face neighbor start, 2. go to neighbor start
+						# if facing neighboring vertex, neighbor is that vertex
+						if (edge, theta_edge_to_neighbor) not in Edges:
+							Edges3D[(edge, theta_edge_to_neighbor)] = [(neighbor, theta_edge_to_neighbor)]
+						else:
+							Edges3D[(edge, theta_edge_to_neighbor)].append((neighbor, theta_edge_to_neighbor))
+						if debug:
+							print "added to neighbor, theta_edge_to_neighbor"
 
 				
-					for foo, neighbor_theta in neighbor_thetas.items():
+					for possible_neighbor, neighbor_theta in neighbor_thetas.items():
 						# if foo == start2D:
 						# 	print "found start in neighbors"
 						# 	print "theta from foo to start:", neighbor_theta
 						# 	print "theta from start to foo:", round((neighbor_theta + math.pi)%(2 * math.pi), 2)
 
 						# print "neighbor_theta:",neighbor_theta
-						# if facing neighboring vertex, neighbor can also be rotation towards other vertices
-						if theta_edge_to_neighbor != neighbor_theta:
-							if (edge, theta_edge_to_neighbor) not in Edges3D:
-								Edges3D[(edge, theta_edge_to_neighbor)] = [(edge, neighbor_theta)]
-							else:
-								if (edge, neighbor_theta) not in Edges3D[(edge, theta_edge_to_neighbor)]:
-									Edges3D[(edge, theta_edge_to_neighbor)].append((edge, neighbor_theta))
+						# don't face start and rotate elsewhere, don't face elsewhere and rotate start
+						if neighbor != start2D and possible_neighbor != start2D:
+							# if facing neighboring vertex, neighbor can also be rotation towards other vertices
+							if theta_edge_to_neighbor != neighbor_theta:
+								if (edge, theta_edge_to_neighbor) not in Edges3D:
+									Edges3D[(edge, theta_edge_to_neighbor)] = [(edge, neighbor_theta)]
+								else:
+									if (edge, neighbor_theta) not in Edges3D[(edge, theta_edge_to_neighbor)]:
+										Edges3D[(edge, theta_edge_to_neighbor)].append((edge, neighbor_theta))
+								if debug:
+									print "added to self, theta_edge_to_neighbor to neighbor_theta"
 
-						# if just arrived from vertex (have opp angle), neighbors are turning to visible vertices, including turning around pi radians
-						if (edge, (neighbor_theta + math.pi)%(2 * math.pi)) in Edges:
-							Edges3D[(edge, round((neighbor_theta + math.pi)%(2 * math.pi), 2))].append((edge, theta_edge_to_neighbor))
-						else:
-							Edges3D[(edge, round((neighbor_theta + math.pi)%(2 * math.pi), 2))] = [(edge, theta_edge_to_neighbor)]
+
+						# do not include start ID in possible neighbors to disallow backtracking to start only (all other edges are bidirectional (except the goal (but that's something else)))
+						if neighbor != start2D:
+							# if just arrived from vertex (have opp angle), neighbors are turning to visible vertices, including turning around pi radians
+							if (edge, (neighbor_theta + math.pi)%(2 * math.pi)) in Edges:
+								Edges3D[(edge, round((neighbor_theta + math.pi)%(2 * math.pi), 2))].append((edge, theta_edge_to_neighbor))
+							else:
+								Edges3D[(edge, round((neighbor_theta + math.pi)%(2 * math.pi), 2))] = [(edge, theta_edge_to_neighbor)]
+							if debug:
+								print "added to incoming neighbor, theta_edge_to_neighbor.  possible_neighbor:",possible_neighbor
 
 				elif edge == start2D:
 					# print "start neighbor:", neighbor
