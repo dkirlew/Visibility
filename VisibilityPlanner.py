@@ -23,8 +23,12 @@ class VisibilityPlanner(object):
 
 		Vertices = self.GetVerticesDict(env_config)
 		Edges = {}
-		for vertex in Vertices.keys(): 
+		for vertex in Vertices.keys():
+
+
 			W = self.VisibleVertices(vertex, Vertices)
+			if vertex == (512.01, 936.7):
+				print "visible vertices from ",vertex,":",W
 			for w in W:
 				if vertex in Edges:
 					# print "edge vertex:", vertex
@@ -690,7 +694,7 @@ class VisibilityPlanner(object):
 			# print "edge or vertex v is:",edge
 			neighbor_thetas = self.FindRelativeAngles(edge, neighbors)
 
-			if edge == (517.28, 728.45):
+			if edge == (512.01, 936.7):
 				print "now debugging"
 				print "neighbors of p1:",neighbors
 				debug = True
@@ -698,6 +702,8 @@ class VisibilityPlanner(object):
 				debug = False
 
 			for neighbor in neighbors:
+				if debug:
+					print "now looking at neighbor",neighbor
 				theta_edge_to_neighbor = neighbor_thetas[neighbor]
 				# print "theta_edge_to_neighbor:",theta_edge_to_neighbor
 
@@ -709,10 +715,12 @@ class VisibilityPlanner(object):
 						else:
 							Edges3D[(edge, theta_edge_to_neighbor)].append((neighbor, theta_edge_to_neighbor))
 						if debug:
-							print "added to neighbor, theta_edge_to_neighbor"
+							print "added to neighbor, theta_edge_to_neighbor:", theta_edge_to_neighbor
 
 				
 					for possible_neighbor, neighbor_theta in neighbor_thetas.items():
+						if debug:
+							print "now looking at possible_neighbor",possible_neighbor
 						# if foo == start2D:
 						# 	print "found start in neighbors"
 						# 	print "theta from foo to start:", neighbor_theta
@@ -729,7 +737,7 @@ class VisibilityPlanner(object):
 									if (edge, neighbor_theta) not in Edges3D[(edge, theta_edge_to_neighbor)]:
 										Edges3D[(edge, theta_edge_to_neighbor)].append((edge, neighbor_theta))
 								if debug:
-									print "added to self, theta_edge_to_neighbor to neighbor_theta"
+									print "added to self, theta_edge_to_neighbor(",theta_edge_to_neighbor,") to possible neighbor(",possible_neighbor,") neighbor_theta:",neighbor_theta
 
 
 						# do not include start ID in possible neighbors to disallow backtracking to start only (all other edges are bidirectional (except the goal (but that's something else)))
