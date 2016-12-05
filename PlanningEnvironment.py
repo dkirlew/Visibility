@@ -329,7 +329,7 @@ class PlanningEnvironment(object):
 
 
 		if xl_rotated < xp_rotated and xp_rotated < xr_rotated:
-			if abs(yp_rotated - yl_rotated) < (self.robot_radius - 0.3):
+			if abs(yp_rotated - yl_rotated) < (self.robot_radius - 0.4):
 				# print "in box"
 				# print "xl_rotated",xl_rotated
 				# print "yl_rotated",yl_rotated
@@ -341,7 +341,7 @@ class PlanningEnvironment(object):
 		else:
 			dist_left = numpy.sqrt(float(numpy.square(xp_rotated - xl_rotated) + numpy.square(yp_rotated - yl_rotated)))
 			dist_right = numpy.sqrt(float(numpy.square(xp_rotated - xr_rotated) + numpy.square(yp_rotated - yr_rotated)))
-			if min(dist_left, dist_right) < (self.robot_radius - 0.3):
+			if min(dist_left, dist_right) < (self.robot_radius - 0.4):
 				# print "in sides"
 				# print "xl_rotated",xl_rotated
 				# print "yl_rotated",yl_rotated

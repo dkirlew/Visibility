@@ -245,8 +245,8 @@ class VisibilityPlanner(object):
 			xp = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / determinant
 			yp = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / determinant
 
-			if ((x1 >= xp and xp >= x2) or (x1 <= xp and xp <= x2)) and ((x3 >= xp and xp >= x4) or (x3 <= xp and xp <= x4)):
-				if ((y1 >= yp and yp >= y2) or (y1 <= yp and yp <= y2)) and ((y3 >= yp and yp >= y4) or (y3 <= yp and yp <= y4)):
+			if (max(x1, x2) > xp and xp > min(x1, x2)) and (max(x3, x4) > xp and xp > min(x3, x4)):
+				if (max(y1, y2) > yp and yp >=min(y1, y2)) and (max(y3, y4) > yp and yp > min(y3, y4)):
 					return True
 
 		return False
@@ -593,39 +593,42 @@ class VisibilityPlanner(object):
 		dijkstra_edges = self.GetDijsktraEdges(Edges)
 		parent = {}
 
-		test = ((434.55, 672.28), 4.15)
-
-		if test in dijkstra_edges:
-			print "totes in there"
-		else:
-			print "whaaaaa?"
-
-
-
-		A = {} #[None] * len(dijkstra_edges)
+		A = {} # keeps track of expansions
 		queue = [(0, self.start_config)]
 		expansions = 0
 
 		while queue:
 			cost, vertex1 = heappop(queue)
-			print "popped vertex1:",vertex1,"cost:",cost
+			# print "popped vertex1:",vertex1,"cost:",cost
 
 			if vertex1 == self.goal_config:
 				final_cost = cost
 				break
 
-			# if A[vertex1] is None:
 			if vertex1 not in A.keys():
-				print "not in A:"
+				# print "not in A"
 				A[vertex1] = cost
 				vertex1_dict = dijkstra_edges[vertex1]
 				# print "vertex1_dict:",vertex1_dict
 				for vertex2, temp_cost in vertex1_dict.items():
-					# if A[vertex2] is None:
 					if vertex2 not in A.keys():
-						print "\tvertex2:",vertex2,"added cost:",(temp_cost + cost)
+						# print "\tvertex2:",vertex2,"added cost:",(temp_cost + cost)
 						heappush(queue, (cost + temp_cost, vertex2))
-						parent[vertex2] = vertex1
+						if vertex2 in parent:
+							# print "\t\tin parent"
+							other_parent_vertex2 = parent[vertex2]
+							other_parent_dict = dijkstra_edges[other_parent_vertex2]
+							previous_cost_vertex2 = other_parent_dict[vertex2]
+							if previous_cost_vertex2 > (temp_cost + cost):
+								# print "\t\treplacing previous parent"
+								parent[vertex2] = vertex1
+							else:
+								continue
+						else:
+							# print "\t\tnew"
+							parent[vertex2] = vertex1
+					# elif temp_cost < A[vertex2]:
+
 			expansions+=1
 			queue.sort()
 
@@ -638,15 +641,15 @@ class VisibilityPlanner(object):
 	def GetDijsktraEdges(self, Edges):
 		dijkstra_edges = {}
 		self.AngleDict = {}
-		print "---------------------------------------------------------------------------"
-		print "Edges:"
-		print Edges
-		print "--------------------------------------------------------"
+		# print "---------------------------------------------------------------------------"
+		# print "Edges:"
+		# print Edges
+		# print "--------------------------------------------------------"
 		Edges3D = self.Get3DEdges(Edges) # dict of format [(x, y), theta] = [((x_neighbor1, y_neighbor1), theta_neighbor1]
-		print "---------------------------------------------------------------------------"
-		print "Edges3D:"
-		print Edges3D
-		print "---------------------------------------------------------------------------"
+		# print "---------------------------------------------------------------------------"
+		# print "Edges3D:"
+		# print Edges3D
+		# print "---------------------------------------------------------------------------"
 		
 
 
@@ -655,11 +658,6 @@ class VisibilityPlanner(object):
 
 		for edge, neighbors in Edges3D.items():
 			temp_edges = {}
-
-			if test == edge:
-				print "totes added"
-			else:
-				print "srsly?"
 
 			for neighbor in neighbors:
 				temp_edges[neighbor] = self.CostOfMove(edge, neighbor)
@@ -715,12 +713,15 @@ class VisibilityPlanner(object):
 						else:
 							Edges3D[(edge, theta_edge_to_neighbor)].append((neighbor, theta_edge_to_neighbor))
 						if debug:
-							print "added to neighbor, theta_edge_to_neighbor:", theta_edge_to_neighbor
+							print "move to neighbor, theta_edge_to_neighbor:", theta_edge_to_neighbor
+							print "\t\tEdges3D[",(edge, theta_edge_to_neighbor),"]:",Edges3D[(edge, theta_edge_to_neighbor)]
+					elif debug:
+						print "neighbor",neighbor,"is start"
 
 				
 					for possible_neighbor, neighbor_theta in neighbor_thetas.items():
 						if debug:
-							print "now looking at possible_neighbor",possible_neighbor
+							print "\tnow looking at possible_neighbor",possible_neighbor
 						# if foo == start2D:
 						# 	print "found start in neighbors"
 						# 	print "theta from foo to start:", neighbor_theta
@@ -737,20 +738,31 @@ class VisibilityPlanner(object):
 									if (edge, neighbor_theta) not in Edges3D[(edge, theta_edge_to_neighbor)]:
 										Edges3D[(edge, theta_edge_to_neighbor)].append((edge, neighbor_theta))
 								if debug:
-									print "added to self, theta_edge_to_neighbor(",theta_edge_to_neighbor,") to possible neighbor(",possible_neighbor,") neighbor_theta:",neighbor_theta
+									print "\t\tadded to self, theta_edge_to_neighbor(",theta_edge_to_neighbor,") to possible neighbor(",possible_neighbor,") neighbor_theta:",neighbor_theta
+									print "\t\tEdges3D[",(edge, theta_edge_to_neighbor),"]:",Edges3D[(edge, theta_edge_to_neighbor)]
+							elif debug:
+								print "\t\tequal to self"
+						elif debug:
+							print "\t\teither neighbor",neighbor,"or possible_neighbor",possible_neighbor,"is start"
 
 
 						# do not include start ID in possible neighbors to disallow backtracking to start only (all other edges are bidirectional (except the goal (but that's something else)))
 						if neighbor != start2D:
 							# if just arrived from vertex (have opp angle), neighbors are turning to visible vertices, including turning around pi radians
-							if (edge, (neighbor_theta + math.pi)%(2 * math.pi)) in Edges:
+							if (edge, round((neighbor_theta + math.pi)%(2 * math.pi), 2)) in Edges3D:
 								Edges3D[(edge, round((neighbor_theta + math.pi)%(2 * math.pi), 2))].append((edge, theta_edge_to_neighbor))
+								if debug: print "\t\t\tthis is a known instance of",(edge, round((neighbor_theta + math.pi)%(2 * math.pi), 2))
 							else:
 								Edges3D[(edge, round((neighbor_theta + math.pi)%(2 * math.pi), 2))] = [(edge, theta_edge_to_neighbor)]
+								if debug: print "\t\t\tthis is a new instance of",(edge, round((neighbor_theta + math.pi)%(2 * math.pi), 2))
 							if debug:
-								print "added to incoming neighbor, theta_edge_to_neighbor.  possible_neighbor:",possible_neighbor
+								print "\t\tadded to incoming neighbor, theta_edge_to_neighbor.  possible_neighbor:",possible_neighbor
+								print "\t\tEdges3D[",(edge, round((neighbor_theta + math.pi)%(2 * math.pi), 2)),"]:",Edges3D[(edge, round((neighbor_theta + math.pi)%(2 * math.pi), 2))]
+						elif debug:
+							print "\t\tincoming neighbor",neighbor,"is start"
 
 				elif edge == start2D:
+					if debug: print "HEY THIS IS REALLY WRONG---------------------------------"
 					# print "start neighbor:", neighbor
 					# print "neighbor theta:", theta_edge_to_neighbor
 					if (edge, start_theta) not in Edges3D:
@@ -775,6 +787,7 @@ class VisibilityPlanner(object):
 
 
 				else: # is Goal
+					if debug: print "HEY THIS IS REALLY WRONG---------------------------------"
 					# from incoming neighbor, can only rotate to goal theta
 					if (edge, goal_theta) not in Edges3D:
 						Edges3D[(edge, round((theta_edge_to_neighbor + math.pi)%(2 * math.pi), 2))] = [(edge, goal_theta)]
@@ -868,10 +881,12 @@ class VisibilityPlanner(object):
 		# euclidian distance, scaled by longest possible distance to travel - diagonal
 		if edge_theta == neighbor_theta:
 			cost = numpy.sqrt(float(numpy.square(edge_x - neighbor_x) + numpy.square(edge_y - neighbor_y)))
-			cost/= numpy.sqrt(float(numpy.square(self.height) + numpy.square(self.width)))
+			# cost/= numpy.sqrt(float(numpy.square(self.height) + numpy.square(self.width)))
 		# rotational distance, scaled by longest possible rotation - pi
 		else:
 			cost = abs(edge_theta - neighbor_theta)
+			if cost > math.pi: # take the shorter route
+				cost = 2 * math.pi - cost
 			cost/= math.pi
 			
 		return cost

@@ -258,10 +258,10 @@ def CreateRectangle():
     y4 = math.sin(theta) * (xd - ox) + math.cos(theta) * (yd - oy) + oy
 
 
-    rect_config.append([x1, y1]) #top left
-    rect_config.append([x2, y2]) #top right
-    rect_config.append([x3, y3]) #bottom right
-    rect_config.append([x4, y4]) #bottom left
+    rect_config.append([round(x1, 2), round(y1, 2)]) #top left
+    rect_config.append([round(x2, 2), round(y2, 2)]) #top right
+    rect_config.append([round(x3, 2), round(y3, 2)]) #bottom right
+    rect_config.append([round(x4, 2), round(y4, 2)]) #bottom left
 
     return rect_config
 
@@ -297,8 +297,8 @@ def CreateLine():
             y2 = random.randint(0, height)
         dist = numpy.sqrt(numpy.square(x1 - x2) + numpy.square(y1 - y2))
 
-    line_config.append([x1, y1])
-    line_config.append([x2, y2])
+    line_config.append([round(x1, 2), round(y1, 2)])
+    line_config.append([round(x2, 2), round(y2, 2)])
 
     return line_config
 
