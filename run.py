@@ -6,7 +6,7 @@ import argparse, numpy, time, math, random, ast
 # from SimpleEnvironment import SimpleEnvironment
 from PlanningEnvironment import PlanningEnvironment
 from VisibilityPlanner import VisibilityPlanner
-# from RRTPlanner import RRTPlanner
+from RRTPlanner import RRTPlanner
 from PRMPlanner import PRMPlanner
 # from VRRTPlanner import VRRTPlanner
 # from VPRMPlanner import VPRMPlanner
@@ -171,6 +171,7 @@ def parse_domain(domain_file_name):
 
             if shape == 0: #rectangle
                 shape_env_config = CreateRectangle()
+                print "rect config:",shape_env_config
 
             elif shape == 1: #line
                 shape_env_config = CreateLine()
@@ -389,6 +390,7 @@ def CreateRobotConfig(env_config, start_config = None):
         start_y = start_config[2]
         dist_to_start = dist = numpy.sqrt(numpy.square(x - start_x) + numpy.square(y - start_y))
         while (CheckCollision(env_config, x, y) or dist_to_start < height/10): #TODO: arbitrary
+            print "generating goal"
             x = random.randint(0 + robot_radius, width - robot_radius)
             y = random.randint(0 + robot_radius, height - robot_radius)
             dist_to_start = dist = numpy.sqrt(numpy.square(x - start_x) + numpy.square(y - start_y))
@@ -434,7 +436,7 @@ def CheckRobotRectangleCollision(shape, x, y):
     global width
     global robot_radius
     
-    # print ("rectangle collision")
+    # print ("checking rectangle collision")
     x1 = shape[1][0] # top left x 
     y1 = -1*(shape[1][1]) # top left y, y is inverted because origin in pygame is top left and origin in regular coordinate system is bottom left
     x2 = shape[2][0] # top right x 
@@ -509,19 +511,18 @@ def CheckRobotRectangleCollision(shape, x, y):
     # next check if robot is within robot_radius of edge of rectangle
     # https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
 
-    dist_left_side = PointCloseToLineSegment(robot_x, robot_y, x1, y1, x4, y4)
-    dist_right_side = PointCloseToLineSegment(robot_x, robot_y, x2, y2, x3, y3)
-    dist_top_side = PointCloseToLineSegment(robot_x, robot_y, x3, y3, x4, y4)
-    dist_bottom_side = PointCloseToLineSegment(robot_x, robot_y, x1, y1, x2, y2)
+    dist_left_side = PointCloseToLineSegment(robot_x, -robot_y, x1, -y1, x4, -y4)
+    dist_right_side = PointCloseToLineSegment(robot_x, -robot_y, x2, -y2, x3, -y3)
+    dist_top_side = PointCloseToLineSegment(robot_x, -robot_y, x3, -y3, x4, -y4)
+    dist_bottom_side = PointCloseToLineSegment(robot_x, -robot_y, x1, -y1, x2, -y2)
 
     # print "dist_left_side:",dist_left_side
     # print "dist_right_side:",dist_right_side
     # print "dist_top_side:",dist_top_side
     # print "dist_bottom_side:",dist_bottom_side
 
-    if dist_left_side < robot_radius or dist_right_side < robot_radius or dist_top_side < robot_radius or dist_bottom_side < robot_radius:
+    if dist_left_side  or dist_right_side or dist_top_side or dist_bottom_side:
         return True
-
 
     return False
 
@@ -533,7 +534,9 @@ def DistPointToLine(point_x, point_y, line1_x, line1_y, line2_x, line2_y):
     return dist
 
 
-def PointCloseToLineSegment(self, point_x, point_y, line1_x, line1_y, line2_x, line2_y):
+def PointCloseToLineSegment(point_x, point_y, line1_x, line1_y, line2_x, line2_y):
+    global robot_radius
+
     mid_x = abs(line2_x - line1_x) / 2 + min(line1_x, line2_x)
     mid_y = abs(line2_y - line1_y) / 2 + min(line1_y, line2_y)
 
@@ -548,7 +551,7 @@ def PointCloseToLineSegment(self, point_x, point_y, line1_x, line1_y, line2_x, l
         right_x = line1_x
         right_y = line1_y
 
-    theta = self.FindRelativeAngle(left_x, left_y, mid_x, mid_y, False)
+    theta = FindRelativeAngle(left_x, left_y, mid_x, mid_y, False)
     theta_rotated = -theta
 
     xl_rotated = math.cos(theta_rotated) * (left_x - mid_x) - math.sin(theta_rotated) * (left_y - mid_y) + mid_x
@@ -560,15 +563,45 @@ def PointCloseToLineSegment(self, point_x, point_y, line1_x, line1_y, line2_x, l
 
 
     if xl_rotated < xp_rotated and xp_rotated < xr_rotated:
-        if abs(yp_rotated - yl_rotated) < (self.robot_radius - 0.4):
+        if abs(yp_rotated - yl_rotated) < (robot_radius - 0.4):
             return True
     else:
         dist_left = numpy.sqrt(float(numpy.square(xp_rotated - xl_rotated) + numpy.square(yp_rotated - yl_rotated)))
         dist_right = numpy.sqrt(float(numpy.square(xp_rotated - xr_rotated) + numpy.square(yp_rotated - yr_rotated)))
-        if min(dist_left, dist_right) < (self.robot_radius - 0.4):
+        if min(dist_left, dist_right) < (robot_radius - 0.4):
             return True
 
     return False
+
+
+# calculate angle from origin to point p
+def FindRelativeAngle(o_x, o_y, p_x, p_y, should_round = True):
+
+    # y axis is flipped
+    origin_x = float(o_x)
+    origin_y = float(o_y)
+    point_x = float(p_x)
+    point_y = float(p_y)
+
+    if origin_y != point_y:
+        relative_theta = math.atan(float(point_y - origin_y) / float(point_x - origin_x)) # radians
+    else:
+        if point_x > origin_x: # point is to right of origin
+            relative_theta = 0
+        else: # point is to left of origin
+            relative_theta = math.pi
+
+    # theta is between -pi/4 and pi/4.  need to change to be between 0 and 2pi
+    if point_x < origin_x: # quadrant 2 and 3
+        relative_theta = relative_theta + math.pi
+    elif point_y < origin_y: # quadrant 4
+        relative_theta = relative_theta + 2*math.pi
+
+    # print "relative_theta:",relative_theta
+    if should_round:
+        return round(relative_theta, 2)
+    else:
+        return relative_theta
 
 
 def CheckRobotLineCollision(shape, x, y):
@@ -739,8 +772,8 @@ if __name__ == "__main__":
     planner = args.planner
     if args.planner == 'v':
         planner = VisibilityPlanner(planning_env, visualize, width, height, robot_radius)
-        # # elif args.planner == 'rrt':
-        # #     planner = RRTPlanner(planning_env, visualize)
+    elif args.planner == 'rrt':
+        planner = RRTPlanner(planning_env, visualize)
     elif args.planner == 'prm':
         planner = PRMPlanner(planning_env, visualize, width, height, robot_radius)
         # # elif args.planner == 'vrrt':
