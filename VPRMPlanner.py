@@ -29,8 +29,7 @@ class VPRMPlanner(object):
 
 		# add approximately half of the possible visible vertices
 		self.visibility_probability = (float(len(self.vertices)) / self.max_nodes) * 0.5
-		print "self.visibility_probability:",self.visibility_probability
-
+		
 		N = []
 		E = {}
 
@@ -417,7 +416,6 @@ class VPRMPlanner(object):
 		# print "temp_path:",temp_path
 		# print "path:",path
 
-
 		return path
 
 
@@ -513,7 +511,6 @@ class VPRMPlanner(object):
 
 
 	def GetRandomVisibilityVertex(self, N):
-		print "attempting GetRandomVisibilityVertex"
 		all_in = True
 
 		for visible_vertex in self.vertices:
@@ -522,7 +519,7 @@ class VPRMPlanner(object):
 				break
 
 		if all_in: # if all vertices are already added, get random location without sampling from visibility
-			print "cant add GetRandomVisibilityVertex"
+			# print "cant add GetRandomVisibilityVertex"
 			return self.RandomLocation(N, False)
 
 		rand_index = random.randint(0, len(self.vertices) - 1)
@@ -532,12 +529,11 @@ class VPRMPlanner(object):
 			rand_index = random.randint(0, len(self.vertices) - 1)
 			rand_vertex = self.vertices[rand_index]
 
-		print "found RandomVisibilityVertex:",rand_vertex
+		# print "found RandomVisibilityVertex:",rand_vertex
 		return rand_vertex
 		
 
 	def GetRandomCloseVisibilityVertex(self, node, dist, N):
-		print "attempting GetRandomCloseVisibilityVertex"
 		node_x = node[0]
 		node_y = node[1]
 		cantAdd = True
@@ -553,7 +549,7 @@ class VPRMPlanner(object):
 					break
 
 		if cantAdd: # if all vertices are already added or too far, get random location without sampling from visibility
-			print "cant add GetRandomCloseVisibilityVertex"
+			# print "cant add GetRandomCloseVisibilityVertex"
 			return self.RandomCloseLocation(node, dist, N, False)
 
 		rand_index = random.randint(0, len(self.vertices) - 1)
@@ -572,5 +568,4 @@ class VPRMPlanner(object):
 
 			rand_dist = numpy.sqrt(numpy.square(node_x - rand_vertex_x) + numpy.square(node_y - rand_vertex_y))
 
-		print "found RandomCloseVisibilityVertex:",rand_vertex
 		return rand_vertex
