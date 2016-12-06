@@ -558,6 +558,7 @@ class PlanningEnvironment(object):
 
 	def Construct3DPath(self, path2D, start_config, goal_config):
 		path3D = [start_config]
+		cost = 0.0
 
 		prev_node = (start_config[0][0], start_config[0][1])
 
@@ -579,7 +580,19 @@ class PlanningEnvironment(object):
 
 		path3D.append(goal_config)
 
-		return path3D
+		for i in range(1, len(path3D)):
+			prev_node = path3D[i-1]
+			node = path3D[i]
+			prev_node_x = prev_node[0][0]
+			prev_node_y = prev_node[0][1]
+			prev_node_theta = prev_node_[1]
+			node_x = node[0][0]
+			node_y = node[0][1]
+			node_theta = node_[1]
+
+			cost+=self.CostOfMove((prev_node, theta), (node, theta))
+
+		return path3D, cost
 
 
 	def FindRelativeAngle(self, o_x, o_y, p_x, p_y, should_round = True):
