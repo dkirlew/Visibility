@@ -27,13 +27,17 @@ class RRTPlanner(object):
 		if self.visualize:
 			self.InitializePlot(start_coord)
 
-		tree = RRTTree(start_coord)
+		self.tree = RRTTree(start_coord)
 
 		GoalFound = False
+		timeout_limit = 5.0
 
-		while not(GoalFound):
+		start_time = time.time()
+		run_time = time.time() - start_time
+
+		while not(GoalFound) and run_time < timeout_limit:
 			random_coord = self.GenerateRandomNode(GoalProb, goal_coord)
-			nearest_node = tree.GetNearestNode(random_coord)
+			nearest_node = self.tree.GetNearestNode(random_coord)
 			CoordInCollision = self.planning_env.CheckPathCollision(env_config, nearest_node, random_coord)
 
 			# If random coordinate is reachable, extend to it, else towards it
@@ -45,31 +49,49 @@ class RRTPlanner(object):
 				if InCollision:
 					continue
 
-			tree.AddEdge(nearest_node, new_coord)
+			self.tree.AddEdge(nearest_node, new_coord)
 			self.PlotEdge(nearest_node, new_coord)
 
 			DistToGoal = self.ComputeDistance(goal_coord, new_coord)
 			if goal_coord == new_coord:
 				GoalFound = True
 			elif (DistToGoal < epsilon):
-				tree.AddEdge(new_coord, goal_coord)
+				self.tree.AddEdge(new_coord, goal_coord)
 				GoalFound = True
 
+			run_time = time.time() - start_time
 
-		# GOAL FOUND, get path now
-		path2D = [goal_coord];
-		while path2D[-1] != start_coord:
-			Parent = tree.NodeParent[path2D[-1]]
-			previous = Parent[0]
-			path2D.append(previous)
 
-		path2D.reverse();
+		#RRT either found the goal or timed out
+		construct_time = time.time() - start_time
 
-		path3D = self.planning_env.Construct3DPath(path2D, start_config, goal_config)
-		Vertices = tree.Nodes2D
-		Edges = tree.NodeParent
+		#Check if RRT completed
+		if GoalFound == False:	
+			if_fail = 1
+			path3D = []
+			len_path = 0
+		else:
+			if_fail = 0
+			path2D = [goal_coord];
+			while path2D[-1] != start_coord:
+				Parent = self.tree.NodeParent[path2D[-1]]
+				previous = Parent[0]
+				path2D.append(previous)
+			path2D.reverse();
+			path3D, len_path = self.planning_env.Construct3DPath(path2D, start_config, goal_config)
 
-		return Vertices, Edges, path3D
+
+		num_nodes = len(self.tree.Nodes2D)
+		Vertices = self.tree.Nodes2D
+		Edges = self.tree.NodeParent
+
+
+		print "construct_time:",construct_time
+		print "num_nodes:",num_nodes
+		print "len_path:",len_path
+		print "if_fail:",if_fail
+
+		return Vertices, Edges, path3D, construct_time, num_nodes, len_path, if_fail
 
 
 	def GenerateRandomNode(self, GoalProb, goal_coord):
