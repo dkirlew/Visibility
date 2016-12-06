@@ -15,12 +15,12 @@ class VRRTPlanner(object):
 	def Plan(self, env_config, start_config, goal_config):
 		self.start_config = start_config
 		self.goal_config = goal_config
-		self.VisibilityVertices = self.planning_env.GetVisibilityVertices(env_config)
+		self.VisibilityVertices = self.planning_env.GetVisibleVertices(env_config)
 
 		GoalProb = 0.2
 		VertexProb = 0.2
 
-		epsilon = self.robot_radius/2
+		epsilon = self.robot_radius
 
 		start_coord = start_config[0]
 		goal_coord = goal_config[0]	
@@ -28,7 +28,7 @@ class VRRTPlanner(object):
 		if self.visualize:
 			self.InitializePlot(start_coord)
 
-		self.self.tree = RRTTree(start_coord)
+		self.tree = RRTTree(start_coord)
 
 		GoalFound = False
 
@@ -78,7 +78,7 @@ class VRRTPlanner(object):
 
 		if RandProb < GoalProb:
 			new_coord = goal_coord
-		elif GoalProb <= RandProb and RandProb <= (GoalProb + VertexProb)
+		elif GoalProb <= RandProb and RandProb <= (GoalProb + VertexProb):
 			new_coord = self.GetRandVertex()
 		else:
 			new_coord = self.GetRandCoord()
@@ -86,10 +86,9 @@ class VRRTPlanner(object):
 		return new_coord
 
 	def GetRandVertex(self):
-
 		all_in = True
 
-		for vertex in VisibilityVertices:
+		for vertex in self.VisibilityVertices:
 			if vertex not in self.tree.Nodes2D:
 				all_in = False
 				break
@@ -97,11 +96,11 @@ class VRRTPlanner(object):
 		if all_in:
 			vertex = GetRandCoord()
 		else:
-			MaxIndex = len(VisibilityVertices) - 1
+			MaxIndex = len(self.VisibilityVertices) - 1
 			newVertex = False
 			while not(newVertex):
 				RandIndex = random.randint(0, MaxIndex)
-				vertex = VisibilityVertices[RandIndex]
+				vertex = self.VisibilityVertices[RandIndex]
 				if vertex not in self.tree.Nodes2D:
 					newVertex = True
 
