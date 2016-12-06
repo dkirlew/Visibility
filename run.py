@@ -71,12 +71,12 @@ def parse_domain(domain_file_name):
     if domain_file_name != "r" and domain_file_name != "easy" and domain_file_name != "medium" and domain_file_name != "hard": # if not random, parse file
         for line in open(domain_file_name+str(".txt")):
             line = str(line)
-            print ("line:",line)
+            # print ("line:",line)
             shape_env_config = []
-            print ("eval",line[0])
+            # print ("eval",line[0])
             if line[0].lower() == "r" or line[0].lower() =="l": # rectangle and line are [name, coord1, coord2] so can be parsed the same
                 split = line.split("|")  # must split on special char | - comma used for coordinates
-                print ("split:",split)
+                # print ("split:",split)
                 shape_env_config.append(split[0]) # shape type
                 for entry in range(1,len(split)-1): # first entry is shape ID, last is new line character
                     coord = ast.literal_eval(split[entry])
@@ -381,30 +381,25 @@ def CreateRobotConfig(env_config, start_config = None):
     x = random.randint(0 + robot_radius, width - robot_radius)
     y = random.randint(0 + robot_radius, height - robot_radius)
     theta = round(random.uniform(0, 2*math.pi), 2)
-    numTries = 0
 
     # check if robot config is in collision with obstacles or if it is too close to start config
     if start_config is not None:
-        print ("checking goal collisions")
+        # print ("checking goal collisions")
         start_x = start_config[1]
         start_y = start_config[2]
         dist_to_start = dist = numpy.sqrt(numpy.square(x - start_x) + numpy.square(y - start_y))
-        while (CheckCollision(env_config, x, y) or dist_to_start < height/10):# and numTries < 10: #TODO: arbitrary
+        while (CheckCollision(env_config, x, y) or dist_to_start < height/10): #TODO: arbitrary
             x = random.randint(0 + robot_radius, width - robot_radius)
             y = random.randint(0 + robot_radius, height - robot_radius)
             dist_to_start = dist = numpy.sqrt(numpy.square(x - start_x) + numpy.square(y - start_y))
-            numTries+=1
     else: # check if in collision with obstacles
-        print ("checking start collisions")
-        while CheckCollision(env_config, x, y):# and numTries < 10:
+        # print ("checking start collisions")
+        while CheckCollision(env_config, x, y):
             x = random.randint(0 + robot_radius, width - robot_radius)
             y = random.randint(0 + robot_radius, height - robot_radius)
-            numTries+=1
     config.append(float(x))
     config.append(float(y))
     config.append(theta)
-    if numTries >= 9:
-        print ("HEY NUMTRIES MAXED OUT ------------------------------------------------")
     return config
 
 
@@ -439,7 +434,7 @@ def CheckRobotRectangleCollision(shape, x, y):
     global width
     global robot_radius
     
-    print ("rectangle collision")
+    # print ("rectangle collision")
     x1 = shape[1][0] # top left x 
     y1 = -1*(shape[1][1]) # top left y, y is inverted because origin in pygame is top left and origin in regular coordinate system is bottom left
     x2 = shape[2][0] # top right x 
@@ -557,7 +552,7 @@ def CheckRobotLineCollision(shape, x, y):
     global width
     global robot_radius
     
-    print ("line collision")
+    # print ("line collision")
     sx = shape[1][0] # start x
     sy = shape[1][1] # start y
     ex = shape[2][0] # end x
@@ -643,7 +638,7 @@ def CheckRobotArcCollision(shape, x, y):
                 robot_theta = math.pi
             else: # same center
                 if robot_radius >= shape_radius: # robot is huge and eating the arc
-                    print ("robot eating arc")
+                    # print ("robot eating arc")
                     return True
                 else: # robot fits in arc
                     return False

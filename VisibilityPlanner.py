@@ -27,8 +27,6 @@ class VisibilityPlanner(object):
 
 
 			W = self.VisibleVertices(vertex, Vertices)
-			if vertex == (512.01, 936.7):
-				print "visible vertices from ",vertex,":",W
 			for w in W:
 				if vertex in Edges:
 					# print "edge vertex:", vertex
@@ -367,10 +365,10 @@ class VisibilityPlanner(object):
 
 
 
-		print "x1_rotated:",x1_rotated,"y1_rotated:",y1_rotated
-		print "x2_rotated:",x2_rotated,"y2_rotated:",y2_rotated
-		print "x3_rotated:",x3_rotated,"y3_rotated:",y3_rotated
-		print "x4_rotated:",x4_rotated,"y4_rotated:",y4_rotated
+		# print "x1_rotated:",x1_rotated,"y1_rotated:",y1_rotated
+		# print "x2_rotated:",x2_rotated,"y2_rotated:",y2_rotated
+		# print "x3_rotated:",x3_rotated,"y3_rotated:",y3_rotated
+		# print "x4_rotated:",x4_rotated,"y4_rotated:",y4_rotated
 
 
 		buffer_x1_rotated = x1_rotated - self.robot_radius
@@ -704,9 +702,9 @@ class VisibilityPlanner(object):
 
 		start2D = (start_x, start_y)
 		goal2D = (goal_x, goal_y)
-		print "start2D:",start2D
+		# print "start2D:",start2D
 
-		print "goal2D:",goal2D
+		# print "goal2D:",goal2D
 
 		for edge, neighbors in Edges.items():
 			# print "edge or vertex v is:",edge
@@ -715,13 +713,13 @@ class VisibilityPlanner(object):
 			if edge == (512.01, 936.7):
 				print "now debugging"
 				print "neighbors of p1:",neighbors
-				debug = True
-			else:
-				debug = False
+			# 	debug = True
+			# else:
+			# 	debug = False
 
 			for neighbor in neighbors:
-				if debug:
-					print "now looking at neighbor",neighbor
+				# if debug:
+				# 	print "now looking at neighbor",neighbor
 				theta_edge_to_neighbor = neighbor_thetas[neighbor]
 				# print "theta_edge_to_neighbor:",theta_edge_to_neighbor
 
@@ -732,16 +730,16 @@ class VisibilityPlanner(object):
 							Edges3D[(edge, theta_edge_to_neighbor)] = [(neighbor, theta_edge_to_neighbor)]
 						else:
 							Edges3D[(edge, theta_edge_to_neighbor)].append((neighbor, theta_edge_to_neighbor))
-						if debug:
-							print "move to neighbor, theta_edge_to_neighbor:", theta_edge_to_neighbor
-							print "\t\tEdges3D[",(edge, theta_edge_to_neighbor),"]:",Edges3D[(edge, theta_edge_to_neighbor)]
-					elif debug:
-						print "neighbor",neighbor,"is start"
+					# 	if debug:
+					# 		print "move to neighbor, theta_edge_to_neighbor:", theta_edge_to_neighbor
+					# 		print "\t\tEdges3D[",(edge, theta_edge_to_neighbor),"]:",Edges3D[(edge, theta_edge_to_neighbor)]
+					# elif debug:
+					# 	print "neighbor",neighbor,"is start"
 
 				
 					for possible_neighbor, neighbor_theta in neighbor_thetas.items():
-						if debug:
-							print "\tnow looking at possible_neighbor",possible_neighbor
+						# if debug:
+							# print "\tnow looking at possible_neighbor",possible_neighbor
 						# if foo == start2D:
 						# 	print "found start in neighbors"
 						# 	print "theta from foo to start:", neighbor_theta
@@ -757,13 +755,13 @@ class VisibilityPlanner(object):
 								else:
 									if (edge, neighbor_theta) not in Edges3D[(edge, theta_edge_to_neighbor)]:
 										Edges3D[(edge, theta_edge_to_neighbor)].append((edge, neighbor_theta))
-								if debug:
-									print "\t\tadded to self, theta_edge_to_neighbor(",theta_edge_to_neighbor,") to possible neighbor(",possible_neighbor,") neighbor_theta:",neighbor_theta
-									print "\t\tEdges3D[",(edge, theta_edge_to_neighbor),"]:",Edges3D[(edge, theta_edge_to_neighbor)]
-							elif debug:
-								print "\t\tequal to self"
-						elif debug:
-							print "\t\teither neighbor",neighbor,"or possible_neighbor",possible_neighbor,"is start"
+								# if debug:
+								# 	print "\t\tadded to self, theta_edge_to_neighbor(",theta_edge_to_neighbor,") to possible neighbor(",possible_neighbor,") neighbor_theta:",neighbor_theta
+								# 	print "\t\tEdges3D[",(edge, theta_edge_to_neighbor),"]:",Edges3D[(edge, theta_edge_to_neighbor)]
+							# elif debug:
+							# 	print "\t\tequal to self"
+						# elif debug:
+						# 	print "\t\teither neighbor",neighbor,"or possible_neighbor",possible_neighbor,"is start"
 
 
 						# do not include start ID in possible neighbors to disallow backtracking to start only (all other edges are bidirectional (except the goal (but that's something else)))
@@ -771,18 +769,17 @@ class VisibilityPlanner(object):
 							# if just arrived from vertex (have opp angle), neighbors are turning to visible vertices, including turning around pi radians
 							if (edge, round((neighbor_theta + math.pi)%(2 * math.pi), 2)) in Edges3D:
 								Edges3D[(edge, round((neighbor_theta + math.pi)%(2 * math.pi), 2))].append((edge, theta_edge_to_neighbor))
-								if debug: print "\t\t\tthis is a known instance of",(edge, round((neighbor_theta + math.pi)%(2 * math.pi), 2))
+								# if debug: print "\t\t\tthis is a known instance of",(edge, round((neighbor_theta + math.pi)%(2 * math.pi), 2))
 							else:
 								Edges3D[(edge, round((neighbor_theta + math.pi)%(2 * math.pi), 2))] = [(edge, theta_edge_to_neighbor)]
-								if debug: print "\t\t\tthis is a new instance of",(edge, round((neighbor_theta + math.pi)%(2 * math.pi), 2))
-							if debug:
-								print "\t\tadded to incoming neighbor, theta_edge_to_neighbor.  possible_neighbor:",possible_neighbor
-								print "\t\tEdges3D[",(edge, round((neighbor_theta + math.pi)%(2 * math.pi), 2)),"]:",Edges3D[(edge, round((neighbor_theta + math.pi)%(2 * math.pi), 2))]
-						elif debug:
-							print "\t\tincoming neighbor",neighbor,"is start"
+								# if debug: print "\t\t\tthis is a new instance of",(edge, round((neighbor_theta + math.pi)%(2 * math.pi), 2))
+							# if debug:
+							# 	print "\t\tadded to incoming neighbor, theta_edge_to_neighbor.  possible_neighbor:",possible_neighbor
+							# 	print "\t\tEdges3D[",(edge, round((neighbor_theta + math.pi)%(2 * math.pi), 2)),"]:",Edges3D[(edge, round((neighbor_theta + math.pi)%(2 * math.pi), 2))]
+						# elif debug:
+						# 	print "\t\tincoming neighbor",neighbor,"is start"
 
 				elif edge == start2D:
-					if debug: print "HEY THIS IS REALLY WRONG---------------------------------"
 					# print "start neighbor:", neighbor
 					# print "neighbor theta:", theta_edge_to_neighbor
 					if (edge, start_theta) not in Edges3D:
@@ -807,7 +804,6 @@ class VisibilityPlanner(object):
 
 
 				else: # is Goal
-					if debug: print "HEY THIS IS REALLY WRONG---------------------------------"
 					# from incoming neighbor, can only rotate to goal theta
 					if (edge, round((theta_edge_to_neighbor + math.pi)%(2 * math.pi), 2)) not in Edges3D:
 						Edges3D[(edge, round((theta_edge_to_neighbor + math.pi)%(2 * math.pi), 2))] = [(edge, goal_theta)]
