@@ -33,13 +33,14 @@ class PRMPlanner(object):
 
 		if P == None:
 			print "Error: graph is incomplete.  Exiting."
+			path = []
 			# exit()
 
-		path = self.planning_env.Construct3DPath(P, self.start_config, self.goal_config)
-
-		# print "N:",N
-		# print "E:",E
-		print "path3D:",path
+		else:
+			path = self.planning_env.Construct3DPath(P, self.start_config, self.goal_config)
+			# print "N:",N
+			# print "E:",E
+			print "path3D:",path
 
 		return N, E, path
 
@@ -47,14 +48,14 @@ class PRMPlanner(object):
 	def Learn(self, N, E):
 		N, E = self.Construct(N, E)
 
-		# N, E = self.Expand(N, E)
+		N, E = self.Expand(N, E)
 
 		return N, E
 
 
 	def Construct(self, N, E):
 		# approximate number of robots that could fit in C space
-		max_nodes = 10# (self.width / (2 * self.robot_radius)) * (self.height / (2 * self.robot_radius))
+		max_nodes = (self.width / (2 * self.robot_radius)) * (self.height / (2 * self.robot_radius))
 		num_nodes = 0
 
 		while num_nodes < max_nodes :
@@ -95,13 +96,13 @@ class PRMPlanner(object):
 
 
 	def RandomLocation(self):
-		x = round(random.uniform(0 + self.robot_radius, self.width - self.robot_radius), 2)
-		y = round(random.uniform(0 + self.robot_radius, self.height - self.robot_radius), 2)
+		x = round(random.uniform(0, self.width), 2)
+		y = round(random.uniform(0, self.height), 2)
 
 
 		while self.planning_env.CheckCollision(self.env_config, x, y):
-			x = round(random.uniform(0 +self.robot_radius, self.width -self.robot_radius), 2)
-			y = round(random.uniform(0 +self.robot_radius, self.height -self.robot_radius), 2)
+			x = round(random.uniform(0, self.width), 2)
+			y = round(random.uniform(0, self.height), 2)
 
 		location = (x, y)
 
@@ -150,9 +151,13 @@ class PRMPlanner(object):
 		num_expansions = 0
 		max_expansions = max_edges / 2
 
-		while num_expansions < max_expansions:
+		# print "weighted_nodes:",weighted_nodes
+		print "max_edges:",max_edges
+
+		while weighted_nodes and num_expansions < max_expansions:
 			c = self.ChooseNode(weighted_nodes)
-			N, E = self.ExpandNode(c, N, E)
+			print "expanding c:",c
+			N, E = self.ExpandNode(c, N, E, max_edges)
 
 			num_expansions+=1
 
@@ -161,33 +166,57 @@ class PRMPlanner(object):
 
 	def GetWeightedNodes(self, N, E):
 		unweighted_nodes = {}
-		weighted_nodes = []
+		weighted_nodes = {}
+		normalized_nodes = []
 		total_edges = 0.0
 		max_edges = 0
+		weight_sum = 0.0
 
 		for node in N:
-			num_edges = len(E[node])
+			if node in E:
+				num_edges = len(E[node])
+			else:
+				num_edges = 0
 			unweighted_nodes[node] = num_edges
 			total_edges+=num_edges
 			if num_edges > max_edges:
 				max_edges = num_edges
+		# print "unweighted_nodes:",unweighted_nodes
 
 		for node in unweighted_nodes:
 			num_edges = unweighted_nodes[node]
-			weighted_val = (total_edges - num_edges) / total_edges # do difference to give higher weight to nodes with few connections
-			heappush(weighted_nodes, (weighted_val, node))
+			weighted_val = 1 - float(num_edges) / max_edges # invert to give higher weight to nodes with low num edges
+			# print "node:",node
+			# print "num_edges:",num_edges
+			# print "un normalized weighted_val:",weighted_val
+			weighted_nodes[node] = weighted_val
+			weight_sum+=weighted_val
 
-		return weighted_nodes, max_edges
+		# print "weighted_nodes:",weighted_nodes
+
+		for node in weighted_nodes:
+			weight = weighted_nodes[node]
+			normalized_weight = float(weight) / weight_sum
+			# print "weight:",weight
+			# print "normalized_weight:",normalized_weight
+
+			heappush(normalized_nodes, (normalized_weight, node))
+
+		return normalized_nodes, max_edges
 
 
-	def ChooseNode(self, weighted_nodes):
+	def ChooseNode(self, nodes):
+		weighted_nodes = [x[:] for x in nodes] # do not change 
 		prob = random.uniform(0, 1)
 		nodes = weighted_nodes
 		cumulative_weight = 0
 
 		# print "weighted_nodes:",weighted_nodes
+		print "prob:",prob
+
 		while nodes:
 			weight, node = weighted_nodes.pop()
+			print "checking node",node,"with weight",weight,"and cumulative_weight",cumulative_weight
 			if (weight + cumulative_weight) >= prob:
 				return node
 			cumulative_weight+=weight
@@ -195,10 +224,9 @@ class PRMPlanner(object):
 		return
 
 
-	def ExpandNode(self, c, N, E):
+	def ExpandNode(self, c, N, E, max_expansions):
 		num_expansions = 0 # TODO
 		num_tries = 0 # TODO
-		max_expansions = 5 # TODO
 		max_tries = 50 # TODO
 
 		while num_tries < max_tries:
@@ -208,7 +236,7 @@ class PRMPlanner(object):
 				if not self.IsCyclic(c, neighbor, E) and not self.planning_env.CheckPathCollision(self.env_config, c, neighbor):
 					if neighbor not in N:
 						N.append(neighbor)
-						# print "Adding c:",c,"and neighbor:",neighbor,"in ExpandNode"
+						print "Expanding c:",c,"to neighbor:",neighbor,"in ExpandNode"
 						if c in E:
 							E[c].append(neighbor)
 						else:
@@ -231,11 +259,11 @@ class PRMPlanner(object):
 		c_x = c[0]
 		c_y = c[1]
 
-		min_x = max(0 + self.robot_radius, c_x - dist)
-		max_x = min(self.width - self.robot_radius, c_x + dist)
+		min_x = max(0, c_x - dist)
+		max_x = min(self.width, c_x + dist)
 
-		min_y = max(0 + self.robot_radius, c_y - dist)
-		max_y = min(self.height - self.robot_radius, c_y + dist)
+		min_y = max(0, c_y - dist)
+		max_y = min(self.height, c_y + dist)
 
 
 		x = round(random.uniform(min_x, max_x), 2)
