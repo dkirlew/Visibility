@@ -162,8 +162,9 @@ def parse_domain(domain_file_name):
             print ("Unknown file name \"" + domain_file_name + "\".  Expecting r, easy, medium, hard, or file name.  Exiting.")
             exit(0)
 
-        name+=str(int(time.time())) + ".txt"
+        name+=str(int(time.time()))
         domain_file_name = name
+        name+=".txt"
         newfile = open(name, "w") #w = write access
 
         for i in range(difficulty*2): #twice as many shapes as the difficulty

@@ -585,7 +585,7 @@ class PlanningEnvironment(object):
 			pygame.display.flip()
 			self.screen.blit(self.background, (0, 0))
 
-		pygame.image.save(self.background, name + "-" + str(time.time()) + ".jpg")
+		pygame.image.save(self.background, "Images/" + name + "-" + str(time.time()) + ".jpg")
 
 
 	def InitializePlot(self, Vertices, Edges, path, env_config, start_config, goal_config, name):
