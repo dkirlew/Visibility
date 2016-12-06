@@ -719,16 +719,19 @@ if __name__ == "__main__":
     
     parser.add_argument('-p', '--planner', type=str, default='v',
                         help='The planner to run (v,prm,rrt,vprm,vrrt)')
-    parser.add_argument('-v', '--visualize', default='True',
-                        help='Enable visualization of graph (default is True')
-    parser.add_argument('-o', '--output', default='False',
-                        help='Enable output logging (default is False)')
+
+    parser.add_argument('-v', '--visualize', default=False,
+                        help='Enable visualization of graph (default is False')
+
     parser.add_argument('-d', '--domain', default = 'r',
                         help='Select which domain to use (r for random, easy, medium, or hard for difficult of random, or enter file name.  Default is random)')
     
     args = parser.parse_args()
     
-    visualize = args.visualize
+    if args.visualize == 'True':
+        visualize = True
+    else:
+        visualize = False
     domain = args.domain
 
     planning_env = PlanningEnvironment(width, height, robot_radius)
