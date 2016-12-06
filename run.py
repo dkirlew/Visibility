@@ -9,7 +9,7 @@ from VisibilityPlanner import VisibilityPlanner
 from RRTPlanner import RRTPlanner
 from PRMPlanner import PRMPlanner
 # from VRRTPlanner import VRRTPlanner
-# from VPRMPlanner import VPRMPlanner
+from VPRMPlanner import VPRMPlanner
 
 
 def main(planner, planning_env, visualize, output, domain):
@@ -729,12 +729,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='script for testing planners')
     
-    # parser.add_argument('-r', '--robot', type=str, default='simple',
-    #                     help='The robot to load (herb or simple)')
     parser.add_argument('-p', '--planner', type=str, default='v',
                         help='The planner to run (v,prm,rrt,vprm,vrrt)')
-    # parser.add_argument('-m', '--manip', type=str, default='right',
-    #                     help='The manipulator to plan with (right or left) - only applicable if robot is of type herb')
     parser.add_argument('-v', '--visualize', default='True',
                         help='Enable visualization of graph (default is True')
     parser.add_argument('-o', '--output', default='False',
@@ -742,34 +738,11 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--domain', default = 'r',
                         help='Select which domain to use (r for random, easy, medium, or hard for difficult of random, or enter file name.  Default is random)')
     
-
     args = parser.parse_args()
     
-    # openravepy.RaveInitialize(True, level=openravepy.DebugLevel.Info)
-    # openravepy.misc.InitOpenRAVELogging()
-
-    # if args.debug:
-    #     openravepy.RaveSetDebugLevel(openravepy.DebugLevel.Debug)
-
-    # env = openravepy.Environment()
-    # env.SetViewer('qtcoin')
-    # env.GetViewer().SetName('Visibility Adventerous Graph')
-
-    # First setup the environment and the robot
     visualize = args.visualize
     domain = args.domain
-    #TODO
-    # if args.robot == 'herb':
-    #     robot = HerbRobot(env, args.manip)
-    #     planning_env = HerbEnvironment(robot)
-    #     visualize = False
-    # elif args.robot == 'simple':
-    #     robot = SimpleRobot(env)
-    #     planning_env = SimpleEnvironment(robot)
-    # else:
-    #     print 'Unknown robot option: %s' % args.robot
-    #     exit(0)
-    # Next setup the planner
+
     planning_env = PlanningEnvironment(width, height, robot_radius)
     planner = args.planner
     if args.planner == 'v':
@@ -780,8 +753,8 @@ if __name__ == "__main__":
         planner = PRMPlanner(planning_env, visualize, width, height, robot_radius)
         # # elif args.planner == 'vrrt':
         # #     planner = VRRTPlanner(planning_env, visualize)
-        # # elif args.planner == 'vprm':
-        # #     planner = VPRMPlanner(planning_env, visualize)
+    elif args.planner == 'vprm':
+        planner = VPRMPlanner(planning_env, visualize, width, height, robot_radius)
     else:
         print ('Unknown planner option: %s' % args.planner)
         exit(0)
@@ -789,6 +762,3 @@ if __name__ == "__main__":
 
 
     main(planner, planning_env, visualize, None, domain)
-
-    # import IPython
-    # IPython.embed()
