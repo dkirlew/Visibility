@@ -466,7 +466,7 @@ class PlanningEnvironment(object):
 			return False
 
 
-	def InitializeMiniPlot(self, env_config, start_config, goal_config):
+	def InitializeMiniPlot(self, env_config, start_config, goal_config, name):
 		# R = Rectangle, L = Line, C = Circle, A = Arc, S = Start Config, G = Goal Config
 		# Rectangle contain top left, top right, bottom right, and bottom left coordinates
 		# Line contains start and end coordinate
@@ -585,8 +585,10 @@ class PlanningEnvironment(object):
 			pygame.display.flip()
 			self.screen.blit(self.background, (0, 0))
 
+		pygame.image.save(self.background, name + "-" + str(time.time()) + ".jpg")
 
-	def InitializePlot(self, Vertices, Edges, path, env_config, start_config, goal_config):
+
+	def InitializePlot(self, Vertices, Edges, path, env_config, start_config, goal_config, name):
 		# R = Rectangle, L = Line, C = Circle, A = Arc, S = Start Config, G = Goal Config
 		# Rectangle contain top left, top right, bottom right, and bottom left coordinates
 		# Line contains start and end coordinate
@@ -755,8 +757,7 @@ class PlanningEnvironment(object):
 			pygame.display.flip()
 			self.screen.blit(self.background, (0, 0))
 
-		
-		# time.sleep(5)
+		pygame.image.save(self.background, name + "-" + str(time.time()) + ".jpg")
 		
 	def PlotEdge(self, sconfig, econfig):
 		pl.plot([sconfig[0], econfig[0]],

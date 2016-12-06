@@ -17,7 +17,7 @@ def main(planner, planning_env, visualize, output, domain):
     global width
     global robot_radius
 
-    env_config, start, goal = parse_domain(domain)#numpy.array(robot.GetCurrentConfiguration())
+    env_config, start, goal, name = parse_domain(domain)#numpy.array(robot.GetCurrentConfiguration())
     print ("env_config:")
     for config in env_config:
         print (str(config))
@@ -40,8 +40,8 @@ def main(planner, planning_env, visualize, output, domain):
     goal_config = ((goal_x, goal_y), goal_theta)
 
     Vertices, Edges, path = planner.Plan(env_config, start_config, goal_config)    
-    planning_env.InitializePlot(Vertices, Edges, path, env_config, start_config, goal_config)
-    # planning_env.InitializeMiniPlot(env_config, start_config, goal_config)
+    planning_env.InitializePlot(Vertices, Edges, path, env_config, start_config, goal_config, name)
+    # planning_env.InitializeMiniPlot(env_config, start_config, goal_config, name)
   
     start_time = time.time()
     # # plan = planner.Plan(start_config, goal_config, visualize, output)
@@ -163,6 +163,7 @@ def parse_domain(domain_file_name):
             exit(0)
 
         name+=str(int(time.time())) + ".txt"
+        domain_file_name = name
         newfile = open(name, "w") #w = write access
 
         for i in range(difficulty*2): #twice as many shapes as the difficulty
@@ -202,7 +203,7 @@ def parse_domain(domain_file_name):
 
         newfile.close()
         print ("Created new problem file",name,".")
-    return env_config, robot_start_config, robot_goal_config
+    return env_config, robot_start_config, robot_goal_config, domain_file_name
 
 
 def CreateRectangle():
