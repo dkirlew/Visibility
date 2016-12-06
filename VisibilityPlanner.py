@@ -46,6 +46,8 @@ class VisibilityPlanner(object):
 					# print "edge w:",w
 					Edges[w] = [vertex]
 
+
+
 		final_cost, plan, num_expansions = self.VisibilityDijkstras(Vertices, Edges)
 
 		return Vertices, Edges, plan
@@ -613,6 +615,7 @@ class VisibilityPlanner(object):
 		A = {} # keeps track of expansions
 		queue = [(0, self.start_config)]
 		expansions = 0
+		final_cost = 0
 
 		while queue:
 			cost, vertex1 = heappop(queue)
@@ -806,7 +809,7 @@ class VisibilityPlanner(object):
 				else: # is Goal
 					if debug: print "HEY THIS IS REALLY WRONG---------------------------------"
 					# from incoming neighbor, can only rotate to goal theta
-					if (edge, goal_theta) not in Edges3D:
+					if (edge, round((theta_edge_to_neighbor + math.pi)%(2 * math.pi), 2)) not in Edges3D:
 						Edges3D[(edge, round((theta_edge_to_neighbor + math.pi)%(2 * math.pi), 2))] = [(edge, goal_theta)]
 					else:
 						Edges3D[(edge, round((theta_edge_to_neighbor + math.pi)%(2 * math.pi), 2))].append((edge, goal_theta))

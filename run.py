@@ -166,7 +166,8 @@ def parse_domain(domain_file_name):
         newfile = open(name, "w") #w = write access
 
         for i in range(difficulty*2): #twice as many shapes as the difficulty
-            shape = random.randint(1,4)%(difficulty + 1)
+            # shape = random.randint(1,4)%(difficulty + 1)
+            shape = random.randint(1,3)%(difficulty + 1)
 
             if shape == 0: #rectangle
                 shape_env_config = CreateRectangle()
@@ -174,13 +175,14 @@ def parse_domain(domain_file_name):
             elif shape == 1: #line
                 shape_env_config = CreateLine()
 
-            elif shape == 2: #circle
+            #elif shape == 2: #circle
+            else:
                 shape_env_config = CreateCircle()
 
-            else: #arc
-                shape_env_config = CreateArc()
+            # else: #arc
+            #     shape_env_config = CreateArc()
 
-            # TODO: check that shape being added doesn't intersect with existing shapes
+            # # TODO: check that shape being added doesn't intersect with existing shapes
             env_config.append(shape_env_config)
 
         
@@ -311,13 +313,13 @@ def CreateCircle():
     circle_config = ["C"]
     cx1 = random.randint(0, width)
     cy1 = random.randint(0, height)
-    radius = random.randint(min(width, height)/10, min(width, height)/4) # TODO: arbitrary
+    radius = random.randint(min(width, height)/15, min(width, height)/4) # TODO: arbitrary
 
     # radius is too big or center coordinates too close to edge, so re-roll
     while (cx1 + radius > width) or (cy1 + radius > height) or (cx1 - radius < 0) or (cy1 - radius < 0):
         cx1 = random.randint(0, width)
         cy1 = random.randint(0, height)
-        radius = random.randint(min(width, height)/10, min(width, height)/4) # TODO: arbitrary
+        radius = random.randint(min(width, height)/10, min(width, height)/5) # TODO: arbitrary
 
     circle_config.append([cx1, cy1])
     circle_config.append(radius)
