@@ -903,3 +903,27 @@ class PlanningEnvironment(object):
 				CircleVertices.append((x_start, y_start))
 
 		return
+
+
+	def CostOfMove(self, edge, neighbor):
+		cost = 0
+
+		edge_x = edge[0][0]
+		edge_y = edge[0][1]
+		edge_theta = edge[1]
+		neighbor_x = neighbor[0][0]
+		neighbor_y = neighbor[0][1]
+		neighbor_theta = neighbor[1]
+
+		# euclidian distance, scaled by longest possible distance to travel - diagonal
+		if edge_theta == neighbor_theta:
+			cost = numpy.sqrt(float(numpy.square(edge_x - neighbor_x) + numpy.square(edge_y - neighbor_y)))
+			# cost/= numpy.sqrt(float(numpy.square(self.height) + numpy.square(self.width)))
+		# rotational distance in radians
+		else:
+			cost = abs(edge_theta - neighbor_theta)
+			if cost > math.pi: # take the shorter route
+				cost = 2 * math.pi - cost
+			cost/= math.pi
+			
+		return cost
