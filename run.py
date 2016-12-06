@@ -2,8 +2,6 @@
 
 import argparse, numpy, time, math, random, ast
 
-# from HerbEnvironment import HerbEnvironment
-# from SimpleEnvironment import SimpleEnvironment
 from PlanningEnvironment import PlanningEnvironment
 from VisibilityPlanner import VisibilityPlanner
 from RRTPlanner import RRTPlanner
@@ -17,7 +15,7 @@ def main(planner, planning_env, visualize, output, domain):
     global width
     global robot_radius
 
-    env_config, start, goal = parse_domain(domain)#numpy.array(robot.GetCurrentConfiguration())
+    env_config, start, goal, name = parse_domain(domain)#numpy.array(robot.GetCurrentConfiguration())
     print ("env_config:")
     for config in env_config:
         print (str(config))
@@ -36,8 +34,8 @@ def main(planner, planning_env, visualize, output, domain):
     goal_config = ((goal_x, goal_y), goal_theta)
 
     Vertices, Edges, path = planner.Plan(env_config, start_config, goal_config)    
-    planning_env.InitializePlot(Vertices, Edges, path, env_config, start_config, goal_config)
-    # planning_env.InitializeMiniPlot(env_config, start_config, goal_config)
+    planning_env.InitializePlot(Vertices, Edges, path, env_config, start_config, goal_config, name)
+    # planning_env.InitializeMiniPlot(env_config, start_config, goal_config, name)
   
     start_time = time.time()
     print "Time to plan with ",str(planner),": ",(time.time()-start_time)
@@ -154,8 +152,11 @@ def parse_domain(domain_file_name):
             print ("Unknown file name \"" + domain_file_name + "\".  Expecting r, easy, medium, hard, or file name.  Exiting.")
             exit(0)
 
-        name+=str(int(time.time())) + ".txt"
+        name+=str(int(time.time()))
+        domain_file_name = name
+        name+=".txt"
         newfile = open(name, "w") #w = write access
+
 
         for i in range(difficulty*2): #twice as many shapes as the difficulty
             # shape = random.randint(1,4)%(difficulty + 1)
@@ -169,17 +170,11 @@ def parse_domain(domain_file_name):
             elif shape == 1: #line
                 shape_env_config = CreateLine()
 
-            #elif shape == 2: #circle
             else:
                 shape_env_config = CreateCircle()
 
-            # else: #arc
-            #     shape_env_config = CreateArc()
-
-            # # TODO: check that shape being added doesn't intersect with existing shapes
             env_config.append(shape_env_config)
 
-        
             for config in shape_env_config:
                 newfile.write(str(config) + "|")
             newfile.write("\n")
@@ -195,7 +190,7 @@ def parse_domain(domain_file_name):
 
         newfile.close()
         print ("Created new problem file",name,".")
-    return env_config, robot_start_config, robot_goal_config
+    return env_config, robot_start_config, robot_goal_config, domain_file_name
 
 
 def CreateRectangle():
@@ -297,6 +292,7 @@ def CreateLine():
     line_config.append([round(x2, 2), round(y2, 2)])
 
     return line_config
+    
 
 def CreateCircle():
     # Circle contains coordinate of center and radius
@@ -319,6 +315,7 @@ def CreateCircle():
     circle_config.append(radius)
 
     return circle_config
+
 
 def CreateArc():
     # Arc contains coordinate of center, width and height of rectangle containing the arc, start angle, and stop angle.  When added to env_config, Arc will also contain coordinate of center of subtended arc
@@ -749,7 +746,5 @@ if __name__ == "__main__":
     else:
         print ('Unknown planner option: %s' % args.planner)
         exit(0)
-
-
 
     main(planner, planning_env, visualize, None, domain)
