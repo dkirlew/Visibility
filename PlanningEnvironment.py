@@ -22,140 +22,6 @@ class PlanningEnvironment(object):
 
 		return
 
-	def SetGoalParameters(self, goal_config, p = 0.2):
-		self.goal_config = goal_config
-		self.p = p
-		
-	def GenerateRandomConfiguration(self):
-		global table
-		config = [0] * 2;
-		lower_limits, upper_limits = self.boundary_limits
-
-		#
-		# TODO: Generate and return a random configuration
-		#
-		
-		found = False
-
-		#print lower_limits
-		#print upper_limits
-		while found == False:
-				x = round(random.uniform(lower_limits[0], upper_limits[0]),3)
-				y = round(random.uniform(lower_limits[1], upper_limits[1]),3)
-				tempTrans = self.robot.GetTransform()
-				self.robot.SetTransform(numpy.array([[1, 0, 0, x],
-												  [0, 1, 0, y],
-												  [0, 0, 1, 0],
-												  [0, 0, 0, 1]]))
-				if self.robot.GetEnv().CheckCollision(self.robot, table) == False:
-					found = True
-					config = [x,y]
-				self.robot.SetTransform(tempTrans)
-		
-		return numpy.array(config)
-
-	def ComputeDistance(self, start_config, end_config):
-		#
-		# TODO: Implement a function which computes the distance between
-		# two configurations
-		#
-
-		dist = numpy.sqrt(numpy.square(start_config[0]-end_config[0])+numpy.square(start_config[1]-end_config[1]))
-		return dist
-
-	def Extend(self, start_config, end_config):
-		
-		#
-		# TODO: Implement a function which attempts to extend from 
-		#   a start configuration to a goal configuration
-		#
-		numPartitions = 1000
-		x = start_config[0]
-		y = start_config[1]
-
-		deltaX = (end_config[0]-x)/numPartitions
-		deltaY = (end_config[1]-y)/numPartitions
-
-		
-		tempTrans = self.robot.GetTransform()
-
-		for i in range(1,numPartitions):
-			x += deltaX
-			y += deltaY
-			#print i
-			self.robot.SetTransform(numpy.array([[1, 0, 0, x],
-											  [0, 1, 0, y],
-											  [0, 0, 1, 0],
-											  [0, 0, 0, 1]]))
-			if self.robot.GetEnv().CheckCollision(self.robot, table) == True:
-				x -= deltaX
-				y -= deltaY
-				i = numPartitions+1
-				if (x == start_config[0]) & (y == start_config[1]):
-					return None
-				else:
-					return [x, y]
-		return end_config
-
-	def ShortenPath(self, path, timeout=5.0):
-		
-		# 
-		# TODO: Implement a function which performs path shortening
-		#  on the given path.  Terminate the shortening after the 
-		#  given timout (in seconds).
-		#
-		start_time = time.time()
-		numPartitions = 50
-		tempPath = numpy.array(path[len(path)-1])
-
-
-		for i in range(len(path)-1,0,-1):
-			start_config = path[i-1]
-			end_config = path[i]
-			x = end_config[0]
-			y = end_config[1]
-			deltaX = (x-start_config[0])/numPartitions
-			deltaY = (y-start_config[1])/numPartitions
-			x -= deltaX
-			y -= deltaY
-
-			for j in range(0,numPartitions):
-				tempPath = numpy.vstack(([x,y],tempPath))
-				x -= deltaX
-				y -= deltaY
-
-		#print("len divided path: " + str(len(tempPath)))
-		path = tempPath
-		
-		
-		for i in range(0,len(path)-2):
-			for j in range(len(path)-1,i+2,-1):
-				#print("start i: " + str(i))
-				#print("start j: " + str(j))
-				extendConfig = self.Extend(path[i],path[j])
-				if extendConfig != None:
-					if (extendConfig == path[j]).all():
-						l = i+1
-						for k in range(i+1,j-1):
-							#print("org length " + str(len(path)))
-							#print("deleted node " + str(l))
-							path = numpy.delete(path,l,0)
-							#print("new length " + str(len(path)))
-						break
-				if time.time() - start_time >= timeout:
-					j = i
-					i = len(path)
-				#print("end i: " + str(i))
-				#print("end j: " + str(j))
-		dist = []
-		for i in range(0,len(path)-1):
-			dist.append(self.ComputeDistance(path[i],path[i+1]))
-		print("shortened distance: " + str(sum(dist)))
-		print("time to shorten: " + str(time.time() - start_time))
-		print("new number of vertices: " + str(len(path)))
-
-		return path
-
 	def CheckCollision(self, env_config, x, y):
 		
 		for shape in env_config:
@@ -167,9 +33,6 @@ class PlanningEnvironment(object):
 					return True
 			elif shape[0].lower() == "c":
 				if self.CheckRobotCircleCollision(shape, x, y):
-					return True
-			elif shape[0].lower() == "a":
-				if self.CheckRobotArcCollision(shape, x, y):
 					return True
 			else:
 				print ("Error checking collision for shape type \"" + shape[0] + "\".  Expecting R, L, C, or A.  Exiting.")
@@ -399,74 +262,7 @@ class PlanningEnvironment(object):
 		return False
 
 
-	def CheckRobotArcCollision(self, shape, x, y):
-		# Arc contains coordinate of center, width and height of rectangle containing the arc, start angle, and stop angle.  When added to env_config, Arc will also contain coordinate of center of subtended arc
-		
-		robot_x = x
-		robot_y = -1 * y
-
-		shape_radius = int(shape[2])
-		start_angle = shape[3]
-		stop_angle = shape[4]
-
-		arc_x = int(shape[1][0]) + shape_radius # center coordinate x (shape contains top left coordinate.  adding shape_radius creates arc origin/center)
-		arc_y = -1 * (int(shape[1][1]) + shape_radius) # center coordinate y (shape contains top left coordinate.  adding shape_radius creates arc origin/center)
-
-		delta_theta = 2*math.sin(float(self.robot_radius/2)/shape_radius)
-		new_start_angle = start_angle - delta_theta
-		new_stop_angle = stop_angle + delta_theta
-
-		dist = numpy.sqrt(float(numpy.square(arc_x - robot_x) + numpy.square(arc_y - robot_y)))
-
-		# print "shape_radius:",shape_radius
-		# print "start_angle:",start_angle
-		# print "stop_angle:",stop_angle
-		# print "arc_x:",arc_x
-		# print "arc_y:",arc_y
-		# print "robot x:",robot_x
-		# print "robot y:",robot_y
-		# print "dist:",dist
-
-		# check if robot is in "crust" of arc
-		if dist < (shape_radius + self.robot_radius) and dist > (shape_radius - self.robot_radius):
-			# check if robot is inside of "slice" of arc or outside "pie" of arc (slice is empty portion of arc, pie is full arc portion)
-
-			# calculate angle from center of arc to robot
-			if arc_y != robot_y:
-				robot_theta = math.atan(float(robot_y - arc_y) / float(robot_x - arc_x)) # radians
-			else:
-				if robot_x > arc_x: #robot is to right of arc
-					robot_theta = 0
-				elif robot_x < arc_x: # robot is to left of arc
-					robot_theta = math.pi
-				else: # same center
-					if self.robot_radius >= shape_radius: # robot is huge and eating the arc
-						print ("robot eating arc")
-						return True
-					else: # robot fits in arc
-						return False
-
-			# theta is between -pi/4 and pi/4.  need to change to be between 0 and 2pi
-			if robot_x < arc_x: # quadrant 2 and 3
-				robot_theta = robot_theta + math.pi
-			elif robot_y < arc_y: # quadrant 4
-				robot_theta = robot_theta + 2*math.pi
-
-			if new_start_angle < math.pi and new_stop_angle > math.pi: # if angle 0 bisects arc slice
-				if robot_theta <= new_start_angle or robot_theta >= new_stop_angle: # if in slice
-					return False 
-				else:
-					return True
-			else: # normal case
-				if robot_theta >= new_stop_angle and robot_theta <= new_start_angle: # in slice
-					return False
-				else:
-					return True
-		else:
-			return False
-
-
-	def InitializeMiniPlot(self, env_config, start_config, goal_config):
+	def InitializeMiniPlot(self, env_config, start_config, goal_config, name):
 		# R = Rectangle, L = Line, C = Circle, A = Arc, S = Start Config, G = Goal Config
 		# Rectangle contain top left, top right, bottom right, and bottom left coordinates
 		# Line contains start and end coordinate
@@ -475,7 +271,7 @@ class PlanningEnvironment(object):
 		# Start config contains x and y coordinates of robot and theta of robot config
 		# Goal config contains x and y coordinates of robot and theta of robot config
 
-		border_size = 15 
+		border_size = 50
 
 		pygame.init()
 		self.screen = pygame.display.set_mode((self.width + 2 * border_size, self.height + 2 * border_size), pygame.DOUBLEBUF)
@@ -585,8 +381,10 @@ class PlanningEnvironment(object):
 			pygame.display.flip()
 			self.screen.blit(self.background, (0, 0))
 
+		pygame.image.save(self.background, "Images/" + name + "-" + str(time.time()) + ".jpg")
 
-	def InitializePlot(self, Vertices, Edges, path, env_config, start_config, goal_config):
+
+	def InitializePlot(self, Vertices, Edges, path, env_config, start_config, goal_config, name):
 		# R = Rectangle, L = Line, C = Circle, A = Arc, S = Start Config, G = Goal Config
 		# Rectangle contain top left, top right, bottom right, and bottom left coordinates
 		# Line contains start and end coordinate
@@ -595,7 +393,7 @@ class PlanningEnvironment(object):
 		# Start config contains x and y coordinates of robot and theta of robot config
 		# Goal config contains x and y coordinates of robot and theta of robot config
 
-		border_size = 15
+		border_size = 50
 
 		pygame.init()
 		self.screen = pygame.display.set_mode((self.width + border_size * 2, self.height + border_size * 2), pygame.DOUBLEBUF)
@@ -755,15 +553,8 @@ class PlanningEnvironment(object):
 			pygame.display.flip()
 			self.screen.blit(self.background, (0, 0))
 
+		pygame.image.save(self.background, name + "-" + str(time.time()) + ".jpg")
 		
-		# time.sleep(5)
-		
-	def PlotEdge(self, sconfig, econfig):
-		pl.plot([sconfig[0], econfig[0]],
-				[sconfig[1], econfig[1]],
-				'k.-', linewidth=2.5)
-		pl.draw()
-
 
 	def Construct3DPath(self, path2D, start_config, goal_config):
 		path3D = [start_config]
@@ -786,10 +577,6 @@ class PlanningEnvironment(object):
 			path3D.append((prev_node, theta)) 	# incoming angle rotating
 			path3D.append((node, theta)) 		# incoming movement
 
-		theta = self.FindRelativeAngle(node_x, node_y, goal_config[0][0], goal_config[0][1], True)
-
-		# path3D.append((node, theta)) 									# incoming angle rotating
-		# path3D.append(((goal_config[0][0], goal_config[0][1]), theta)) 	# incoming movement
 		path3D.append(goal_config)
 
 		return path3D
@@ -861,3 +648,258 @@ class PlanningEnvironment(object):
 		point[1]+=(dist * unitVector[1])
 
 		return point
+
+	def GetVisibleVertices(self, env_config):
+		Vertices = []
+
+		for shape in env_config:
+			if shape[0] == "R":
+				#rectangle
+				self.GetRectangleVertices(env_config, shape, Vertices)
+
+			elif shape[0] == "L":
+				#line
+				self.GetLineVertices(env_config, shape, Vertices)
+
+			elif shape[0] == "C":
+				#circle
+				self.GetCircleVertices(env_config, shape, Vertices)
+			else:
+				print ("Shape not recognized. (Should be R or L or C or A)")
+				exit(0)
+
+		# dict is of form:
+		#	key = 2D vertex
+		#	val = list of adjacent 2D vertices
+		return Vertices
+
+
+	def GetRectangleVertices(self, env_config, shape, RectangleVertices):
+		#http://math.stackexchange.com/questions/175896/finding-a-point-along-a-line-a-certain-distance-away-from-another-point
+		
+		x1 = float(shape[1][0]) # top left x
+		y1 = float(shape[1][1]) # top left y
+		x2 = float(shape[2][0]) # top right x
+		y2 = float(shape[2][1]) # top right y
+		x3 = float(shape[3][0]) # bottom right x
+		y3 = float(shape[3][1]) # bottom right y
+		x4 = float(shape[4][0]) # bottom left x
+		y4 = float(shape[4][1]) # bottom left y
+
+
+		# print "x1:",x1,"y1:",y1
+		# print "x2:",x2,"y2:",y2
+		# print "x3:",x3,"y3:",y3
+		# print "x4:",x4,"y4:",y4
+
+		xm = abs(x1 - x3) / 2 + min(x1, x3)
+		ym = abs(y1 - y3) / 2 + min(y1, y3)
+
+		x_side = abs(x1 - x2) / 2 + min(x1, x2)
+		y_side = abs(y1 - y2) / 2 + min(y1, y2)
+
+		# print "xm:",xm,"ym:",ym
+
+		theta = self.FindRelativeAngle(x_side, y_side, xm, ym, False)
+		theta_rotated = -theta
+
+		# print "theta:",theta
+
+
+		x1_rotated = round(math.cos(theta_rotated) * (x1 - xm) - math.sin(theta_rotated) * (y1 - ym) + xm, 2)
+		y1_rotated = round(math.sin(theta_rotated) * (x1 - xm) + math.cos(theta_rotated) * (y1 - ym) + ym, 2)
+		x2_rotated = round(math.cos(theta_rotated) * (x2 - xm) - math.sin(theta_rotated) * (y2 - ym) + xm, 2)
+		y2_rotated = round(math.sin(theta_rotated) * (x2 - xm) + math.cos(theta_rotated) * (y2 - ym) + ym, 2)
+		x3_rotated = round(math.cos(theta_rotated) * (x3 - xm) - math.sin(theta_rotated) * (y3 - ym) + xm, 2)
+		y3_rotated = round(math.sin(theta_rotated) * (x3 - xm) + math.cos(theta_rotated) * (y3 - ym) + ym, 2)
+		x4_rotated = round(math.cos(theta_rotated) * (x4 - xm) - math.sin(theta_rotated) * (y4 - ym) + xm, 2)
+		y4_rotated = round(math.sin(theta_rotated) * (x4 - xm) + math.cos(theta_rotated) * (y4 - ym) + ym, 2)
+
+
+
+		# print "x1_rotated:",x1_rotated,"y1_rotated:",y1_rotated
+		# print "x2_rotated:",x2_rotated,"y2_rotated:",y2_rotated
+		# print "x3_rotated:",x3_rotated,"y3_rotated:",y3_rotated
+		# print "x4_rotated:",x4_rotated,"y4_rotated:",y4_rotated
+
+
+		buffer_x1_rotated = x1_rotated - self.robot_radius
+		buffer_y1_rotated = y1_rotated + self.robot_radius
+		buffer_x2_rotated = x2_rotated - self.robot_radius
+		buffer_y2_rotated = y2_rotated - self.robot_radius
+		buffer_x3_rotated = x3_rotated + self.robot_radius
+		buffer_y3_rotated = y3_rotated - self.robot_radius
+		buffer_x4_rotated = x4_rotated + self.robot_radius
+		buffer_y4_rotated = y4_rotated + self.robot_radius
+
+		# print "buffer_x1_rotated:",buffer_x1_rotated,"buffer_y1_rotated:",buffer_y1_rotated
+		# print "buffer_x2_rotated:",buffer_x2_rotated,"buffer_y2_rotated:",buffer_y2_rotated
+		# print "buffer_x3_rotated:",buffer_x3_rotated,"buffer_y3_rotated:",buffer_y3_rotated
+		# print "buffer_x4_rotated:",buffer_x4_rotated,"buffer_y4_rotated:",buffer_y4_rotated
+
+
+
+		new_x1 = round(math.cos(theta) * (buffer_x1_rotated - xm) - math.sin(theta) * (buffer_y1_rotated - ym) + xm, 2)
+		new_y1 = round(math.sin(theta) * (buffer_x1_rotated - xm) + math.cos(theta) * (buffer_y1_rotated - ym) + ym, 2)
+		new_x2 = round(math.cos(theta) * (buffer_x2_rotated - xm) - math.sin(theta) * (buffer_y2_rotated - ym) + xm, 2)
+		new_y2 = round(math.sin(theta) * (buffer_x2_rotated - xm) + math.cos(theta) * (buffer_y2_rotated - ym) + ym, 2)
+		new_x3 = round(math.cos(theta) * (buffer_x3_rotated - xm) - math.sin(theta) * (buffer_y3_rotated - ym) + xm, 2)
+		new_y3 = round(math.sin(theta) * (buffer_x3_rotated - xm) + math.cos(theta) * (buffer_y3_rotated - ym) + ym, 2)
+		new_x4 = round(math.cos(theta) * (buffer_x4_rotated - xm) - math.sin(theta) * (buffer_y4_rotated - ym) + xm, 2)
+		new_y4 = round(math.sin(theta) * (buffer_x4_rotated - xm) + math.cos(theta) * (buffer_y4_rotated - ym) + ym, 2)
+
+		# print "new_x1:",new_x1,"new_y1:",new_y1
+		# print "new_x2:",new_x2,"new_y2:",new_y2
+		# print "new_x3:",new_x3,"new_y3:",new_y3
+		# print "new_x4:",new_x4,"new_y4:",new_y4
+
+
+
+		if not self.CheckCollision(env_config, new_x1, new_y1):
+			RectangleVertices.append((new_x1, new_y1))
+		if not self.CheckCollision(env_config, new_x2, new_y2):
+			RectangleVertices.append((new_x2, new_y2))
+		if not self.CheckCollision(env_config, new_x3, new_y3):
+			RectangleVertices.append((new_x3, new_y3))
+		if not self.CheckCollision(env_config, new_x4, new_y4):
+			RectangleVertices.append((new_x4, new_y4))
+
+		return
+
+
+	def GetLineVertices(self, env_config, shape, LineVertices):
+		
+		if float(shape[1][0]) < float(shape[2][0]):
+			xs = float(shape[1][0]) # top left x
+			ys = float(shape[1][1]) # top left y
+			xe = float(shape[2][0]) # top right x
+			ye = float(shape[2][1]) # top right
+		elif float(shape[1][0]) > float(shape[2][0]):
+			xe = float(shape[1][0]) # top left x
+			ye = float(shape[1][1]) # top left y
+			xs = float(shape[2][0]) # top right x
+			ys = float(shape[2][1]) # top right
+		else:
+			if float(shape[1][1]) < float(shape[2][1]):
+				xs = float(shape[1][0]) # top left x
+				ys = float(shape[1][1]) # top left y
+				xe = float(shape[2][0]) # top right x
+				ye = float(shape[2][1]) # top right
+			else:
+				xe = float(shape[1][0]) # top left x
+				ye = float(shape[1][1]) # top left y
+				xs = float(shape[2][0]) # top right x
+				ys = float(shape[2][1]) # top right
+
+		# print "xs:",xs,"ys:",ys
+		# print "xe:",xe,"ye:",ye
+
+		theta = self.FindRelativeAngle(xs, ys, xe, ye, False)
+
+		# print "theta:",theta
+
+		# if theta > math.pi/2:
+		# 	theta_rotated = math.pi - theta
+		# elif theta < math.pi/2:
+		theta_rotated = -theta
+
+		xm = abs(xe-xs)/2 + min(xs, xe)
+		ym = abs(ye-ys)/2 + min(ys, ye)
+
+		xs_rotated = math.cos(theta_rotated) * (xs - xm) - math.sin(theta_rotated) * (ys - ym) + xm
+		ys_rotated = math.sin(theta_rotated) * (xs - xm) + math.cos(theta_rotated) * (ys - ym) + ym
+		xe_rotated = math.cos(theta_rotated) * (xe - xm) - math.sin(theta_rotated) * (ye - ym) + xm
+		ye_rotated = math.sin(theta_rotated) * (xe - xm) + math.cos(theta_rotated) * (ye - ym) + ym
+		# print "xs_rotated:",xs_rotated,"ys_rotated:",ys_rotated
+		# print "xe_rotated:",xe_rotated,"ye_rotated:",ye_rotated
+
+		x1 = xs_rotated - self.robot_radius
+		y1 = ys_rotated - self.robot_radius
+		x2 = xe_rotated + self.robot_radius
+		y2 = ye_rotated - self.robot_radius
+		x3 = xe_rotated + self.robot_radius
+		y3 = ye_rotated + self.robot_radius
+		x4 = xs_rotated - self.robot_radius
+		y4 = ys_rotated + self.robot_radius
+
+
+		# print "x1:",x1,"y1:",y1
+		# print "x2:",x2,"y2:",y2
+		# print "x3:",x3,"y3:",y3
+		# print "x4:",x4,"y4:",y4
+
+
+
+		x1_rotated = round(math.cos(theta) * (x1 - xm) - math.sin(theta) * (y1 - ym) + xm, 2)
+		y1_rotated = round(math.sin(theta) * (x1 - xm) + math.cos(theta) * (y1 - ym) + ym, 2)
+		x2_rotated = round(math.cos(theta) * (x2 - xm) - math.sin(theta) * (y2 - ym) + xm, 2)
+		y2_rotated = round(math.sin(theta) * (x2 - xm) + math.cos(theta) * (y2 - ym) + ym, 2)
+		x3_rotated = round(math.cos(theta) * (x3 - xm) - math.sin(theta) * (y3 - ym) + xm, 2)
+		y3_rotated = round(math.sin(theta) * (x3 - xm) + math.cos(theta) * (y3 - ym) + ym, 2)
+		x4_rotated = round(math.cos(theta) * (x4 - xm) - math.sin(theta) * (y4 - ym) + xm, 2)
+		y4_rotated = round(math.sin(theta) * (x4 - xm) + math.cos(theta) * (y4 - ym) + ym, 2)
+
+
+		# print "x1_rotated:",x1_rotated,"y1_rotated:",y1_rotated
+		# print "x2_rotated:",x2_rotated,"y2_rotated:",y2_rotated
+		# print "x3_rotated:",x3_rotated,"y3_rotated:",y3_rotated
+		# print "x4_rotated:",x4_rotated,"y4_rotated:",y4_rotated
+
+		# print "line (x1_rotated, y1_rotated):",(x1_rotated, y1_rotated)
+		# print "line (x2_rotated, y2_rotated):",(x2_rotated, y2_rotated)
+		# print "line (x3_rotated, y3_rotated):",(x3_rotated, y3_rotated)
+		# print "line (x4_rotated, y4_rotated):",(x4_rotated, y4_rotated)
+
+
+		if not self.CheckCollision(env_config, x1_rotated, y1_rotated):
+			LineVertices.append((x1_rotated, y1_rotated))
+		if not self.CheckCollision(env_config, x2_rotated, y2_rotated):
+			LineVertices.append((x2_rotated, y2_rotated))
+		if not self.CheckCollision(env_config, x3_rotated, y3_rotated):
+			LineVertices.append((x3_rotated, y3_rotated))
+		if not self.CheckCollision(env_config, x4_rotated, y4_rotated):
+			LineVertices.append((x4_rotated, y4_rotated))
+
+		return
+
+
+	def GetCircleVertices(self, env_config, shape, CircleVertices):
+		
+		xc = float(shape[1][0]) 
+		yc = float(shape[1][1])
+		circle_radius = float(shape[2])
+
+		buffer_dist = circle_radius + self.robot_radius
+
+		x_start = xc + buffer_dist/math.cos(math.pi/8)
+		y_start = yc
+
+		x_curr = x_start
+		y_curr = y_start
+
+		for i in range(1, 8):
+			theta = math.pi/4 * i
+			x_temp = math.cos(theta) * (x_curr - xc) - math.sin(theta) * (y_curr - yc) + xc
+			y_temp = math.sin(theta) * (x_curr - xc) + math.cos(theta) * (y_curr - yc) + yc
+			# print "circle loop (x_temp, y_temp):",(x_temp, y_temp)
+			# print "circle loop (x_curr, y_curr):",(x_curr, y_curr)
+
+			if (x_temp, y_temp) not in CircleVertices:
+				if not self.CheckCollision(env_config, x_temp, y_temp):
+					CircleVertices.append((x_temp, y_temp))
+			if (x_curr, y_curr) not in CircleVertices:
+				if not self.CheckCollision(env_config, x_curr, y_curr):
+					CircleVertices.append((x_curr, y_curr))
+			x_curr = x_temp
+			y_curr = y_temp
+
+		# print "circle (x_curr, y_curr):",(x_curr, y_curr)
+		# print "circle (x_start, y_start):",(x_start, y_start)
+		if (x_curr, y_curr) not in CircleVertices:
+			if not self.CheckCollision(env_config, x_curr, y_curr):
+				CircleVertices.append((x_curr, y_curr))
+		if (x_start, y_start) not in CircleVertices:
+			if not self.CheckCollision(env_config, x_start, y_start):
+				CircleVertices.append((x_start, y_start))
+
+		return
