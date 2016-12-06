@@ -33,13 +33,18 @@ def main(planner, planning_env, visualize, output, domain):
 
     goal_config = ((goal_x, goal_y), goal_theta)
 
-    Vertices, Edges, path = planner.Plan(env_config, start_config, goal_config)    
+    start_time = time.time()
+    
+    Vertices, Edges, path, construct_time, num_nodes, len_path, if_fail = planner.Plan(env_config, start_config, goal_config)    
     planning_env.InitializePlot(Vertices, Edges, path, env_config, start_config, goal_config, name)
     # planning_env.InitializeMiniPlot(env_config, start_config, goal_config, name)
   
-    start_time = time.time()
     print "Time to plan with ",str(planner),": ",(time.time()-start_time)
-    
+    print "construct_time:",construct_time
+    print "num_nodes:",num_nodes
+    print "len_path:",len_path
+    print "if_fail:",if_fail
+         
 
 #returns env_config list = [name of env (file name), [shape1 type, shape1 info 1, ...], [shape2 type, shape2 info 1, ....], ...]
 def parse_domain(domain_file_name):
@@ -292,7 +297,7 @@ def CreateLine():
     line_config.append([round(x2, 2), round(y2, 2)])
 
     return line_config
-    
+
 
 def CreateCircle():
     # Circle contains coordinate of center and radius
