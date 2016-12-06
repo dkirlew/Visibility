@@ -152,11 +152,11 @@ class PRMPlanner(object):
 		max_expansions = max_edges / 2
 
 		# print "weighted_nodes:",weighted_nodes
-		print "max_edges:",max_edges
+		# print "max_edges:",max_edges
 
 		while weighted_nodes and num_expansions < max_expansions:
 			c = self.ChooseNode(weighted_nodes)
-			print "expanding c:",c
+			# print "expanding c:",c
 			N, E = self.ExpandNode(c, N, E, max_edges)
 
 			num_expansions+=1
@@ -212,11 +212,11 @@ class PRMPlanner(object):
 		cumulative_weight = 0
 
 		# print "weighted_nodes:",weighted_nodes
-		print "prob:",prob
+		# print "prob:",prob
 
 		while nodes:
 			weight, node = weighted_nodes.pop()
-			print "checking node",node,"with weight",weight,"and cumulative_weight",cumulative_weight
+			# print "checking node",node,"with weight",weight,"and cumulative_weight",cumulative_weight
 			if (weight + cumulative_weight) >= prob:
 				return node
 			cumulative_weight+=weight
@@ -236,7 +236,7 @@ class PRMPlanner(object):
 				if not self.IsCyclic(c, neighbor, E) and not self.planning_env.CheckPathCollision(self.env_config, c, neighbor):
 					if neighbor not in N:
 						N.append(neighbor)
-						print "Expanding c:",c,"to neighbor:",neighbor,"in ExpandNode"
+						# print "Expanding c:",c,"to neighbor:",neighbor,"in ExpandNode"
 						if c in E:
 							E[c].append(neighbor)
 						else:
@@ -288,12 +288,12 @@ class PRMPlanner(object):
 		while P_start == None:
 			config = (self.start_config[0][0], self.start_config[0][1])
 			P_start = self.FindConnection(config, N, E)
-			print "found P_start node:",P_start
+			# print "found P_start node:",P_start
 
 		while P_goal == None:
 			config = (self.goal_config[0][0], self.goal_config[0][1])
 			P_goal = self.FindConnection(config, N, E)
-			print "found P_goal node:",P_goal
+			# print "found P_goal node:",P_goal
 		
 		P = self.ConnectEntirePaths(P_start, P_goal, N, E)
 
@@ -371,7 +371,7 @@ class PRMPlanner(object):
 			path.append(element)
 			last_element = element
 
-		print "path after p_start:",path
+		# print "path after p_start:",path
 
 		start = path[len(path) - 1]
 		goal = P_goal[0] # P_goal goes from goal to connecting node
@@ -385,7 +385,7 @@ class PRMPlanner(object):
 			if element != start and element != goal:
 				path.append(element)
 
-		print "path after VisibilityDijkstras:",path
+		# print "path after VisibilityDijkstras:",path
 
 		P_goal.reverse()
 
@@ -393,14 +393,14 @@ class PRMPlanner(object):
 			if element not in temp_path:
 				return None
 			path.append(element)
-		print "path after P_goal:",path
+		# print "path after P_goal:",path
 
 		path.append((self.goal_config[0][0], self.goal_config[0][1]))
 
-		print "P_start:",P_start
-		print "P_goal:",P_goal
-		print "temp_path:",temp_path
-		print "path:",path
+		# print "P_start:",P_start
+		# print "P_goal:",P_goal
+		# print "temp_path:",temp_path
+		# print "path:",path
 
 
 		return path
@@ -459,7 +459,6 @@ class PRMPlanner(object):
 
 
 	def ReconstructPath(self, parent, current):
-		print "final plan"
 		total_path = [current]
 		while current in parent:
 			current = parent[current]
@@ -468,8 +467,6 @@ class PRMPlanner(object):
 		total_path.reverse()
 		plan = []
 		for node in total_path:
-			# plan.append(self.NodeIdToGridCoord(node))
-			print "node in plan:",node
 			plan.append(node)
 
 		return plan
