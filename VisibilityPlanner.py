@@ -184,6 +184,10 @@ class VisibilityPlanner(object):
 			if self.planning_env.CheckCollision(self.env_config, temp_loc[0], temp_loc[1]):
 				return True
 			check_dist+=(self.robot_radius / 2.0)
+		
+		if self.planning_env.CheckCollision(self.env_config, neighbor_x, neighbor_y):
+				return True
+
 
 		return False
 
@@ -278,11 +282,24 @@ class VisibilityPlanner(object):
 
 		if start_vertex_theta > start_end_theta:
 			return True
+
 		else:
 			start_y*=-1
 			end_y*=-1
 			vertex_y*=-1
-			slope = (end_y - vertex_y) / (end_x - vertex_x)
+			if end_x != vertex_x:
+				slope = (end_y - vertex_y) / (end_x - vertex_x)
+			else: # check if vertex is above or below end point
+				if start_end_theta >= (math.pi / 2) and start_end_theta <= (3* math.pi / 2):
+					if end_y > vertex_y: # e above v
+						return False
+					else:
+						return True # should never happen because start_vertex_theta < start_end_theta
+				else:
+					if end_y < vertex_y: # e below v
+						return False
+					else:
+						return True # should never happen because above
 
 			if start_end_theta > math.pi:
 				# check if slope is positive and start point is below line from end to vertex
@@ -837,7 +854,7 @@ class VisibilityPlanner(object):
 		point_x = float(p_x)
 		point_y = float(p_y)
 
-		if origin_y != point_y:
+		if origin_x != point_x:
 			relative_theta = math.atan(float(point_y - origin_y) / float(point_x - origin_x)) # radians
 		else:
 			if point_x > origin_x: # point is to right of origin
