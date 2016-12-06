@@ -42,8 +42,6 @@ class VisibilityPlanner(object):
 					# print "edge w:",w
 					Edges[w] = [vertex]
 
-
-
 		len_path, plan, construct_time = self.VisibilityDijkstras(Vertices, Edges)
 		num_nodes = len(Vertices.keys()) - 2 # start and goal don't count
 
