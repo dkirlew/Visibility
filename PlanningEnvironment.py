@@ -583,14 +583,9 @@ class PlanningEnvironment(object):
 		for i in range(1, len(path3D)):
 			prev_node = path3D[i-1]
 			node = path3D[i]
-			prev_node_x = prev_node[0][0]
-			prev_node_y = prev_node[0][1]
-			prev_node_theta = prev_node_[1]
-			node_x = node[0][0]
-			node_y = node[0][1]
 			node_theta = node_[1]
 
-			cost+=self.CostOfMove((prev_node, theta), (node, theta))
+			cost+=self.CostOfMove(prev_node, node)
 
 		return path3D, cost
 
