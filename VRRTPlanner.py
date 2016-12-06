@@ -25,7 +25,10 @@ class VRRTPlanner(object):
 		start_coord = start_config[0]
 		goal_coord = goal_config[0]	
 
+		print self.visualize
+		print "visualize", type(self.visualize)
 		if self.visualize:
+			print "INitializing plot"
 			self.InitializePlot(start_coord)
 
 		self.tree = RRTTree(start_coord)
@@ -47,7 +50,9 @@ class VRRTPlanner(object):
 					continue
 
 			self.tree.AddEdge(nearest_node, new_coord)
-			self.PlotEdge(nearest_node, new_coord)
+			if self.visualize:
+				print "Adding edge"
+				self.PlotEdge(nearest_node, new_coord)
 
 			DistToGoal = self.ComputeDistance(goal_coord, new_coord)
 			if goal_coord == new_coord:
