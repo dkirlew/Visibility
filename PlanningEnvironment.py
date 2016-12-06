@@ -295,8 +295,6 @@ class PlanningEnvironment(object):
 			right_x = line1_x
 			right_y = line1_y
 
-
-
 		theta = self.FindRelativeAngle(left_x, left_y, mid_x, mid_y, False)
 		theta_rotated = -theta
 
@@ -306,8 +304,6 @@ class PlanningEnvironment(object):
 		yr_rotated = math.sin(theta_rotated) * (right_x - mid_x) + math.cos(theta_rotated) * (right_y - mid_y) + mid_y
 		xp_rotated = math.cos(theta_rotated) * (point_x - mid_x) - math.sin(theta_rotated) * (point_y - mid_y) + mid_x
 		yp_rotated = math.sin(theta_rotated) * (point_x - mid_x) + math.cos(theta_rotated) * (point_y - mid_y) + mid_y
-
-
 
 		if xl_rotated < xp_rotated and xp_rotated < xr_rotated:
 			if abs(yp_rotated - yl_rotated) < (self.robot_radius - 0.4):
@@ -702,7 +698,7 @@ class PlanningEnvironment(object):
 				
 
 		vertex_radius = 10
-		for node, neighbors in Vertices.items():
+		for node in Vertices:#.items():
 			# print "node",node
 			node_x = int(node[0]) + border_size
 			node_y = int(node[1]) + border_size
@@ -715,18 +711,31 @@ class PlanningEnvironment(object):
 			for neighbor in neighbors:
 				neighbor_x = float(neighbor[0]) + border_size
 				neighbor_y = float(neighbor[1]) + border_size
-				pygame.draw.line(self.background, self.ORANGE, [edge_x, edge_y], [neighbor_x, neighbor_y])
+				pygame.draw.line(self.background, self.ORANGE, [edge_x, edge_y], [neighbor_x, neighbor_y], 5)
+
+		prev_state = None
 
 		for state in path:
 			state_x = state[0][0] + border_size
 			state_y = state[0][1] + border_size
 			state_theta = -1 * state[1]
+
+
+			if prev_state!= None:
+				prev_state_x = prev_state[0][0] + border_size
+				prev_state_y = prev_state[0][1] + border_size
+
+				# line of path being followed
+				pygame.draw.line(self.background, self.BLACK, [state_x, state_y], [prev_state_x, prev_state_y])
+
 			# print "state:",state_x,state_y,state_theta
 			theta_x = int((self.robot_radius / 2) * math.cos(state_theta)) + state_x
 			theta_y = -1 * int((self.robot_radius / 2) * math.sin(state_theta)) + state_y # inverting y because origin for pygame is at top left, origin in coordinate system is in bottom left
 
 			pygame.draw.circle(self.background, self.PURPLE, (int(state_x), int(state_y)), self.robot_radius, 3)
 			pygame.draw.circle(self.background, self.BLACK, (int(theta_x), int(theta_y)), self.robot_radius/3, 1)
+
+			prev_state = state
 		
 
 		running = True
@@ -755,3 +764,100 @@ class PlanningEnvironment(object):
 				'k.-', linewidth=2.5)
 		pl.draw()
 
+
+	def Construct3DPath(self, path2D, start_config, goal_config):
+		path3D = [start_config]
+
+		prev_node = (start_config[0][0], start_config[0][1])
+
+		for i in range(1, len(path2D)):
+			prev_node = path2D[i-1]
+			# print "prev_node:",prev_node
+			prev_node_x = prev_node[0]
+			prev_node_y = prev_node[1]
+			node = path2D[i]
+			# print "node:",node
+			node_x = node[0]
+			node_y = node[1]
+
+			theta = self.FindRelativeAngle(prev_node_x, prev_node_y, node_x, node_y, True)
+			# print "theta:",theta
+
+			path3D.append((prev_node, theta)) 	# incoming angle rotating
+			path3D.append((node, theta)) 		# incoming movement
+
+		theta = self.FindRelativeAngle(node_x, node_y, goal_config[0][0], goal_config[0][1], True)
+
+		# path3D.append((node, theta)) 									# incoming angle rotating
+		# path3D.append(((goal_config[0][0], goal_config[0][1]), theta)) 	# incoming movement
+		path3D.append(goal_config)
+
+		return path3D
+
+
+	def FindRelativeAngle(self, o_x, o_y, p_x, p_y, should_round = True):
+
+		origin_x = float(o_x)
+		origin_y = float(o_y)
+		point_x = float(p_x)
+		point_y = float(p_y)
+
+		if origin_x != point_x:
+			relative_theta = math.atan(float(point_y - origin_y) / float(point_x - origin_x)) # radians
+		else:
+			if point_x > origin_x: # point is to right of origin
+				relative_theta = 0
+			else: # point is to left of origin
+				relative_theta = math.pi
+
+		# theta is between -pi/4 and pi/4.  need to change to be between 0 and 2pi
+		if point_x < origin_x: # quadrant 2 and 3
+			relative_theta = relative_theta + math.pi
+		elif point_y < origin_y: # quadrant 4
+			relative_theta = relative_theta + 2*math.pi
+
+		if should_round:
+			return round(relative_theta, 2)
+		else:
+			return relative_theta
+
+
+	def CheckPathCollision(self, env_config, vertex, neighbor):
+		# print "vertex:",vertex
+		# print "neighbor:",neighbor
+
+		vertex_x = vertex[0]
+		vertex_y = vertex[1]
+		neighbor_x = neighbor[0]
+		neighbor_y = neighbor[1]
+
+		dist = numpy.sqrt(float(numpy.square(vertex_x - neighbor_x) + numpy.square(vertex_y - neighbor_y)))
+		check_dist = 0.0
+		while check_dist <= dist:
+			temp_loc = self.GetPointAtDistOnLine(vertex, neighbor, check_dist)
+			if self.CheckCollision(env_config, temp_loc[0], temp_loc[1]):
+				return True
+			check_dist+=(self.robot_radius / 2.0)
+		
+		if self.CheckCollision(env_config, neighbor_x, neighbor_y):
+				return True
+
+		return False
+
+
+	def GetPointAtDistOnLine(self, start_loc, end_loc, dist):
+		start_x = float(start_loc[0])
+		start_y = float(start_loc[1])
+		end_x = float(end_loc[0])
+		end_y = float(end_loc[1])
+
+		point = [start_x, start_y]
+
+		vector = [end_x - start_x, end_y - start_y]
+		vectorMagnitude = math.sqrt(numpy.square(end_x - start_x) + numpy.square(end_y - start_y))
+		unitVector = [vector[0]/vectorMagnitude, vector[1]/vectorMagnitude]
+
+		point[0]+=(dist * unitVector[0])
+		point[1]+=(dist * unitVector[1])
+
+		return point

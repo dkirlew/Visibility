@@ -7,7 +7,7 @@ import argparse, numpy, time, math, random, ast
 from PlanningEnvironment import PlanningEnvironment
 from VisibilityPlanner import VisibilityPlanner
 # from RRTPlanner import RRTPlanner
-# from PRMPlanner import PRMPlanner
+from PRMPlanner import PRMPlanner
 # from VRRTPlanner import VRRTPlanner
 # from VPRMPlanner import VPRMPlanner
 
@@ -509,10 +509,10 @@ def CheckRobotRectangleCollision(shape, x, y):
     # next check if robot is within robot_radius of edge of rectangle
     # https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
 
-    dist_left_side = DistPointToLineSegment(robot_x, robot_y, x1, y1, x4, y4)
-    dist_right_side = DistPointToLineSegment(robot_x, robot_y, x2, y2, x3, y3)
-    dist_top_side = DistPointToLineSegment(robot_x, robot_y, x3, y3, x4, y4)
-    dist_bottom_side = DistPointToLineSegment(robot_x, robot_y, x1, y1, x2, y2)
+    dist_left_side = PointCloseToLineSegment(robot_x, robot_y, x1, y1, x4, y4)
+    dist_right_side = PointCloseToLineSegment(robot_x, robot_y, x2, y2, x3, y3)
+    dist_top_side = PointCloseToLineSegment(robot_x, robot_y, x3, y3, x4, y4)
+    dist_bottom_side = PointCloseToLineSegment(robot_x, robot_y, x1, y1, x2, y2)
 
     # print "dist_left_side:",dist_left_side
     # print "dist_right_side:",dist_right_side
@@ -533,17 +533,42 @@ def DistPointToLine(point_x, point_y, line1_x, line1_y, line2_x, line2_y):
     return dist
 
 
-def DistPointToLineSegment(point_x, point_y, line1_x, line1_y, line2_x, line2_y):
-    if ((line1_x >= point_x and point_x >= line2_x) or (line1_x <= point_x and point_x <= line2_x)) and ((line1_y >= point_y and point_y >= line2_y) or (line1_y <= point_y and point_y <= line2_y)):
-        numerator = abs((line2_y - line1_y) * point_x - (line2_x - line1_x) * point_y + line2_x * line1_y - line2_y * line1_x)
-        denominator = numpy.sqrt(numpy.square(line2_x - line1_x) + numpy.square(line2_y - line1_y))
-        dist = numerator / denominator
-    else:
-        dist_line1 = numpy.sqrt(numpy.square(point_x - line1_x) + numpy.square(point_y - line1_y))
-        dist_line2 = numpy.sqrt(numpy.square(point_x - line2_x) + numpy.square(point_y - line2_y))
-        dist = min(dist_line1, dist_line2)
+def PointCloseToLineSegment(self, point_x, point_y, line1_x, line1_y, line2_x, line2_y):
+    mid_x = abs(line2_x - line1_x) / 2 + min(line1_x, line2_x)
+    mid_y = abs(line2_y - line1_y) / 2 + min(line1_y, line2_y)
 
-    return dist
+    if line1_x < line2_x:
+        left_x = line1_x
+        left_y = line1_y
+        right_x = line2_x
+        right_y = line2_y
+    else:
+        left_x = line2_x
+        left_y = line2_y
+        right_x = line1_x
+        right_y = line1_y
+
+    theta = self.FindRelativeAngle(left_x, left_y, mid_x, mid_y, False)
+    theta_rotated = -theta
+
+    xl_rotated = math.cos(theta_rotated) * (left_x - mid_x) - math.sin(theta_rotated) * (left_y - mid_y) + mid_x
+    yl_rotated = math.sin(theta_rotated) * (left_x - mid_x) + math.cos(theta_rotated) * (left_y - mid_y) + mid_y
+    xr_rotated = math.cos(theta_rotated) * (right_x - mid_x) - math.sin(theta_rotated) * (right_y - mid_y) + mid_x
+    yr_rotated = math.sin(theta_rotated) * (right_x - mid_x) + math.cos(theta_rotated) * (right_y - mid_y) + mid_y
+    xp_rotated = math.cos(theta_rotated) * (point_x - mid_x) - math.sin(theta_rotated) * (point_y - mid_y) + mid_x
+    yp_rotated = math.sin(theta_rotated) * (point_x - mid_x) + math.cos(theta_rotated) * (point_y - mid_y) + mid_y
+
+
+    if xl_rotated < xp_rotated and xp_rotated < xr_rotated:
+        if abs(yp_rotated - yl_rotated) < (self.robot_radius - 0.4):
+            return True
+    else:
+        dist_left = numpy.sqrt(float(numpy.square(xp_rotated - xl_rotated) + numpy.square(yp_rotated - yl_rotated)))
+        dist_right = numpy.sqrt(float(numpy.square(xp_rotated - xr_rotated) + numpy.square(yp_rotated - yr_rotated)))
+        if min(dist_left, dist_right) < (self.robot_radius - 0.4):
+            return True
+
+    return False
 
 
 def CheckRobotLineCollision(shape, x, y):
@@ -560,8 +585,6 @@ def CheckRobotLineCollision(shape, x, y):
 
     # create rectangle by padding line with robot_radius.  Check for collision between new rectangle and robot
 
-
-    
     dist = DistPointToLine(x, y, sx, sy, ex, ey)
 
     if dist < robot_radius: # inside bar around line (line extends between infinities)
@@ -718,8 +741,8 @@ if __name__ == "__main__":
         planner = VisibilityPlanner(planning_env, visualize, width, height, robot_radius)
         # # elif args.planner == 'rrt':
         # #     planner = RRTPlanner(planning_env, visualize)
-        # # elif args.planner == 'prm':
-        # #     planner = PRMPlanner(planning_env, visualize)
+    elif args.planner == 'prm':
+        planner = PRMPlanner(planning_env, visualize, width, height, robot_radius)
         # # elif args.planner == 'vrrt':
         # #     planner = VRRTPlanner(planning_env, visualize)
         # # elif args.planner == 'vprm':
