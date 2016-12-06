@@ -28,7 +28,7 @@ class VPRMPlanner(object):
 		self.vertices = self.planning_env.GetVisibleVertices(env_config)
 
 		# add approximately half of the possible visible vertices
-		self.visibility_probability = (float(len(self.vertices)) / self.max_nodes) * 0.6
+		self.visibility_probability = (float(len(self.vertices)) / self.max_nodes) * 0.5
 		print "self.visibility_probability:",self.visibility_probability
 
 		N = []
