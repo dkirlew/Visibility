@@ -602,7 +602,7 @@ class VisibilityPlanner(object):
 
 		   
 	def VisibilityDijkstras(self, Vertices, Edges):
-		print ("start DijkstraPlanner to goal")
+		# print ("start DijkstraPlanner to goal")
 		start_time = time.time()
 		dijkstra_edges = self.GetDijsktraEdges(Edges)
 		parent = {}
@@ -859,7 +859,7 @@ class VisibilityPlanner(object):
 
 
 	def ReconstructPath(self, parent, current):
-		print "final plan"
+		# print "final plan"
 		total_path = [current]
 		while current in parent:
 			current = parent[current]
@@ -869,7 +869,7 @@ class VisibilityPlanner(object):
 		plan = []
 		for node in total_path:
 			# plan.append(self.NodeIdToGridCoord(node))
-			print "node in plan:",node
+			# print "node in plan:",node
 			plan.append(node)
 
 		return plan

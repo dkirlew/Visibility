@@ -40,7 +40,7 @@ class PRMPlanner(object):
 			path, len_path = self.planning_env.Construct3DPath(P, self.start_config, self.goal_config)
 			# print "N:",N
 			# print "E:",E
-			print "path3D:",path
+			# print "path3D:",path
 			if_fail = 0
 
 		num_nodes = len(N)
@@ -408,7 +408,7 @@ class PRMPlanner(object):
 
 
 	def VisibilityDijkstras(self, N, E, start_config, goal_config):
-		print ("start DijkstraPlanner to goal")
+		# print ("start DijkstraPlanner to goal")
 		start_time = time.time()
 		dijkstra_edges = self.GetDijsktraEdges(E)
 		parent = {}
@@ -453,9 +453,8 @@ class PRMPlanner(object):
 			expansions+=1
 			queue.sort()
 
-
-		print ("end DijkstraPlanner")
-		print("Seconds to complete DijkstraPlanner: " + str(time.time()- start_time))
+		# print ("end DijkstraPlanner")
+		# print("Seconds to complete DijkstraPlanner: " + str(time.time()- start_time))
 		return self.ReconstructPath(parent, goal_config)
 
 

@@ -384,7 +384,7 @@ class PlanningEnvironment(object):
 		pygame.image.save(self.background, "Images/" + name + "-" + str(time.time()) + ".jpg")
 
 
-	def InitializePlot(self, Vertices, Edges, path, env_config, start_config, goal_config, name):
+	def InitializePlot(self, Vertices, Edges, path, env_config, start_config, goal_config, file_name, planner_name, trial_num):
 		# R = Rectangle, L = Line, C = Circle, A = Arc, S = Start Config, G = Goal Config
 		# Rectangle contain top left, top right, bottom right, and bottom left coordinates
 		# Line contains start and end coordinate
@@ -544,6 +544,8 @@ class PlanningEnvironment(object):
 				elif event.type == pygame.KEYDOWN:
 					if event.key == pygame.K_ESCAPE:
 						running = False
+					elif event.key == pygame.K_SPACE:
+						running = False
 
 			milliseconds = self.clock.tick(self.fps)
 			self.playtime += milliseconds / 1000.0
@@ -553,7 +555,7 @@ class PlanningEnvironment(object):
 			pygame.display.flip()
 			self.screen.blit(self.background, (0, 0))
 
-		pygame.image.save(self.background, name + "-" + str(time.time()) + ".jpg")
+		pygame.image.save(self.background, planner_name + "-" + file_name + "-" + str(trial_num) + ".jpg")
 		
 
 	def Construct3DPath(self, path2D, start_config, goal_config):

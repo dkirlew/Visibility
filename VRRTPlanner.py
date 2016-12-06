@@ -87,12 +87,6 @@ class VRRTPlanner(object):
 		Vertices = self.tree.Nodes2D
 		Edges = self.tree.NodeParent
 
-
-		print "construct_time:",construct_time
-		print "num_nodes:",num_nodes
-		print "len_path:",len_path
-		print "if_fail:",if_fail
-
 		return Vertices, Edges, path3D, construct_time, num_nodes, len_path, if_fail
 
 

@@ -10,7 +10,7 @@ from VRRTPlanner import VRRTPlanner
 from VPRMPlanner import VPRMPlanner
 
 
-def main(planner, planning_env, visualize, domain, planner_name):
+def main(planner, planning_env, visualize, domain, planner_name, trials):
     global height
     global width
     global robot_radius
@@ -33,19 +33,78 @@ def main(planner, planning_env, visualize, domain, planner_name):
 
     goal_config = ((goal_x, goal_y), goal_theta)
 
-    start_time = time.time()
-    
-    Vertices, Edges, path, construct_time, num_nodes, len_path, if_fail = planner.Plan(env_config, start_config, goal_config)    
-    planning_env.InitializePlot(Vertices, Edges, path, env_config, start_config, goal_config, name)
-    # planning_env.InitializeMiniPlot(env_config, start_config, goal_config, name)
-  
-    print "planner:",planner_name
-    print "file name:",name
-    print "time to plan: ",(time.time()-start_time)
-    print "construct_time:",construct_time
-    print "num_nodes:",num_nodes
-    print "len_path:",len_path
-    print "if_fail:",if_fail
+    if not trials:
+
+        if planner_name == 'v':
+            planner = VisibilityPlanner(planning_env, visualize, width, height, robot_radius)
+        elif planner_name == 'rrt':
+            planner = RRTPlanner(planning_env, visualize, width, height, robot_radius)
+        elif planner_name == 'prm':
+            planner = PRMPlanner(planning_env, visualize, width, height, robot_radius)
+        elif planner_name == 'vrrt':
+            planner = VRRTPlanner(planning_env, visualize, width, height, robot_radius)
+        elif planner_name == 'vprm':
+            planner = VPRMPlanner(planning_env, visualize, width, height, robot_radius)
+        else:
+            print ('Unknown planner option: %s' % args.planner)
+            exit(0)
+
+        start_time = time.time()
+        
+        Vertices, Edges, path, construct_time, num_nodes, len_path, if_fail = planner.Plan(env_config, start_config, goal_config)    
+        planning_env.InitializePlot(Vertices, Edges, path, env_config, start_config, goal_config, name)
+        # planning_env.InitializeMiniPlot(env_config, start_config, goal_config, name)
+        total_time = time.time()-start_time
+        plan_time = total_time - construct_time
+      
+        print "planner:",planner_name
+        print "file name:",name
+        print "plan_time:",plan_time
+        print "num_nodes:",num_nodes
+        print "len_path:",len_path
+        print "if_fail:",if_fail
+
+    else:
+        newfile = open(name + "trials.txt", "w") #w = write access
+        newfile.write(name + "\n")
+
+        planner_types = {}
+        planner_types["V"] = VisibilityPlanner(planning_env, visualize, width, height, robot_radius)
+        planner_types["RRT"] = RRTPlanner(planning_env, visualize, width, height, robot_radius)
+        planner_types["PRM"] = PRMPlanner(planning_env, visualize, width, height, robot_radius)
+        planner_types["VRRT"] = VRRTPlanner(planning_env, visualize, width, height, robot_radius)
+        planner_types["VPRM"] = VPRMPlanner(planning_env, visualize, width, height, robot_radius)
+        planner_names = ["V", "RRT", "PRM", "VRRT", "VPRM"]
+
+        for planner_name in planner_names: # each planner
+            planner = planner_types[planner_name]
+            num_trials = 50
+            if planner_name == "V":
+                print "planner:",planner_name
+                num_trials = 1
+
+            for i in range(num_trials):
+                start_time = time.time()
+        
+                Vertices, Edges, path, construct_time, num_nodes, len_path, if_fail = planner.Plan(env_config, start_config, goal_config)    
+                planning_env.InitializePlot(Vertices, Edges, path, env_config, start_config, goal_config, name, planner_name, i)
+
+                total_time = time.time() - start_time
+                plan_time = total_time - construct_time
+
+                print "total_time:",total_time
+                print "construct_time:",construct_time
+                print "plan_time:",plan_time
+             
+                newfile.write("trial " + str(i) + "\t")
+                newfile.write(str(planner_name) + "\t")
+                newfile.write(str(plan_time) + "\t")
+                newfile.write(str(num_nodes) + "\t")
+                newfile.write(str(len_path) + "\t")
+                newfile.write(str(if_fail) + "\n")
+
+        newfile.close()
+
          
 
 #returns env_config list = [name of env (file name), [shape1 type, shape1 info 1, ...], [shape2 type, shape2 info 1, ....], ...]
@@ -724,42 +783,46 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='script for testing planners')
     
-    parser.add_argument('-p', '--planner', type=str, default='v',
+    parser.add_argument('-p', '--planner', type=str, default = 'v',
                         help='The planner to run (v,prm,rrt,vprm,vrrt)')
 
-    parser.add_argument('-v', '--visualize', default=False,
+    parser.add_argument('-v', '--visualize', default = False,
                         help='Enable visualization of graph (default is False')
 
     parser.add_argument('-d', '--domain', default = 'r',
                         help='Select which domain to use (r for random, easy, medium, or hard for difficult of random, or enter file name.  Default is random)')
+
+    parser.add_argument('-t', '--trials', default = False,
+                        help='Run 50 trials of specific file with each planner (250 trials total)')
     
     args = parser.parse_args()
+
+    domain = args.domain
     
     if args.visualize == 'True':
         visualize = True
     else:
         visualize = False
-    domain = args.domain
+    
+    if args.trials == 'True':
+        trials = True
+    else:
+        trials = False
 
     planning_env = PlanningEnvironment(width, height, robot_radius)
     planner = args.planner
     if args.planner == 'v':
-        planner = VisibilityPlanner(planning_env, visualize, width, height, robot_radius)
         planner_name = 'v'
     elif args.planner == 'rrt':
-        planner = RRTPlanner(planning_env, visualize, width, height, robot_radius)
         planner_name = 'rrt'
     elif args.planner == 'prm':
-        planner = PRMPlanner(planning_env, visualize, width, height, robot_radius)
         planner_name = 'prm'
     elif args.planner == 'vrrt':
-        planner = VRRTPlanner(planning_env, visualize, width, height, robot_radius)
         planner_name = 'vrrt'
     elif args.planner == 'vprm':
-        planner = VPRMPlanner(planning_env, visualize, width, height, robot_radius)
         planner_name = 'vprm'
     else:
         print ('Unknown planner option: %s' % args.planner)
         exit(0)
 
-    main(planner, planning_env, visualize, domain, planner_name)
+    main(planner, planning_env, visualize, domain, planner_name, trials)
