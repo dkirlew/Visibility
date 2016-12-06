@@ -8,7 +8,7 @@ from PlanningEnvironment import PlanningEnvironment
 from VisibilityPlanner import VisibilityPlanner
 from RRTPlanner import RRTPlanner
 from PRMPlanner import PRMPlanner
-# from VRRTPlanner import VRRTPlanner
+from VRRTPlanner import VRRTPlanner
 from VPRMPlanner import VPRMPlanner
 
 
@@ -169,7 +169,8 @@ def parse_domain(domain_file_name):
 
         for i in range(difficulty*2): #twice as many shapes as the difficulty
             # shape = random.randint(1,4)%(difficulty + 1)
-            shape = random.randint(1,3)%(difficulty + 1)
+            shape = random.randint(1,3)%difficulty
+            print "shape:",shape
 
             if shape == 0: #rectangle
                 shape_env_config = CreateRectangle()
@@ -748,11 +749,11 @@ if __name__ == "__main__":
     if args.planner == 'v':
         planner = VisibilityPlanner(planning_env, visualize, width, height, robot_radius)
     elif args.planner == 'rrt':
-        planner = RRTPlanner(planning_env, visualize)
+        planner = RRTPlanner(planning_env, visualize, width, height, robot_radius)
     elif args.planner == 'prm':
         planner = PRMPlanner(planning_env, visualize, width, height, robot_radius)
-        # # elif args.planner == 'vrrt':
-        # #     planner = VRRTPlanner(planning_env, visualize)
+    elif args.planner == 'vrrt':
+        planner = VRRTPlanner(planning_env, visualize, width, height, robot_radius)
     elif args.planner == 'vprm':
         planner = VPRMPlanner(planning_env, visualize, width, height, robot_radius)
     else:
