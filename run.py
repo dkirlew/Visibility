@@ -23,10 +23,6 @@ def main(planner, planning_env, visualize, output, domain):
         print (str(config))
     print ("start_config:",start)
     print ("goal_config:",goal)
-    # if robot.name == 'herb':
-    #     goal_config = numpy.array([ 3.68, -1.90,  0.00,  2.20,  0.00,  0.00,  0.00 ])
-    # else:
-    #     goal_config = numpy.array([2.0, -0.8])
 
     start_x = start[1]
     start_y = start[2]
@@ -44,12 +40,8 @@ def main(planner, planning_env, visualize, output, domain):
     # planning_env.InitializeMiniPlot(env_config, start_config, goal_config, name)
   
     start_time = time.time()
-    # # plan = planner.Plan(start_config, goal_config, visualize, output)
-    # plan_short = planning_env.ShortenPath(plan)
     print "Time to plan with ",str(planner),": ",(time.time()-start_time)
-    # # traj = robot.ConvertPlanToTrajectory(plan)
-    # # robot.ExecuteTrajectory(traj)
-
+    
 
 #returns env_config list = [name of env (file name), [shape1 type, shape1 info 1, ...], [shape2 type, shape2 info 1, ....], ...]
 def parse_domain(domain_file_name):
