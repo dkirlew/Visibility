@@ -33,11 +33,12 @@ class PlanningEnvironment(object):
 
 		self.BLACK  = (  0,   0,   0)
 		self.WHITE  = (255, 255, 255)
-		self.BLUE   = (  0,   0, 255)
+		self.BLUE   = ( 51, 102, 255)
 		self.GREEN  = (  0, 255,   0)
 		self.RED    = (255,   0,   0)
 		self.PURPLE = (255,   0, 255)
 		self.ORANGE = (255,  69,   0)
+		self.MAROON = (153,   0,  51)
 
 		return
 
@@ -498,8 +499,10 @@ class PlanningEnvironment(object):
 		# Start config contains x and y coordinates of robot and theta of robot config
 		# Goal config contains x and y coordinates of robot and theta of robot config
 
+		border_size = 15 
+
 		pygame.init()
-		self.screen = pygame.display.set_mode((self.width, self.height), pygame.DOUBLEBUF)
+		self.screen = pygame.display.set_mode((self.width + 2 * border_size, self.height + 2 * border_size), pygame.DOUBLEBUF)
 		self.background = pygame.Surface(self.screen.get_size()).convert()
 		self.background.fill((255, 255, 255))
 		# self.background = self.background.convert()
@@ -508,10 +511,13 @@ class PlanningEnvironment(object):
 		self.fps = 30
 		self.playtime = 0.0
 
+		# draw border
+		pygame.draw.rect(self.background, self.MAROON, [border_size, border_size, self.width, self.height], 5)
+
 		print "robot start config"
-		start_robot_x = int(start_config[0][0]) # robot x
-		start_robot_y = int(start_config[0][1]) # robot y
-		start_theta = float(start_config[1])# * 180 / math.pi
+		start_robot_x = int(start_config[0][0]) + border_size # robot x
+		start_robot_y = int(start_config[0][1]) + border_size # robot y
+		start_theta = float(start_config[1]) # * 180 / math.pi
 
 		# find where ID dot of robot should be to indicate orientation
 		# http://math.libretexts.org/Core/Calculus/Precalculus/Chapter_5%3A_Trigonometric_Functions_of_Angles/5.3_Points_on_Circles_using_Sine_and_Cosine
@@ -523,8 +529,8 @@ class PlanningEnvironment(object):
 		pygame.draw.circle(self.background, self.BLACK, (start_theta_x, start_theta_y), self.robot_radius/4)
 
 		print "robot goal config"
-		goal_robot_x = int(goal_config[0][0]) # robot x
-		goal_robot_y = int(goal_config[0][1]) # robot y
+		goal_robot_x = int(goal_config[0][0]) + border_size # robot x
+		goal_robot_y = int(goal_config[0][1]) + border_size # robot y
 		goal_theta = float(goal_config[1])# * 180 / math.pi
 
 		# find where ID dot of robot should be to indicate orientation
@@ -542,41 +548,41 @@ class PlanningEnvironment(object):
 			if obstacle[0].lower() == "r":
 				print "rectangle"
 
-				x1 = obstacle[1][0] # top left x
-				y1 = obstacle[1][1] # top left y
-				x2 = obstacle[2][0] # top right x
-				y2 = obstacle[2][1] # top right y
-				x3 = obstacle[3][0] # bottom right x
-				y3 = obstacle[3][1] # bottom right y
-				x4 = obstacle[4][0] # bottom left x
-				y4 = obstacle[4][1] # bottom left y
+				x1 = obstacle[1][0] + border_size # top left x
+				y1 = obstacle[1][1] + border_size # top left y
+				x2 = obstacle[2][0] + border_size # top right x
+				y2 = obstacle[2][1] + border_size # top right y
+				x3 = obstacle[3][0] + border_size # bottom right x
+				y3 = obstacle[3][1] + border_size # bottom right y
+				x4 = obstacle[4][0] + border_size # bottom left x
+				y4 = obstacle[4][1] + border_size # bottom left y
 
 				pygame.draw.polygon(self.background, self.GREEN, ((x1, y1), (x2, y2), (x3, y3), (x4, y4)))
 
 			elif obstacle[0].lower() == "l":
 				print "line"
 
-				sx = obstacle[1][0] # start x
-				sy = obstacle[1][1] # start y
-				ex = obstacle[2][0] # end x
-				ey = obstacle[2][1] # end y
+				sx = obstacle[1][0] + border_size # start x
+				sy = obstacle[1][1] + border_size # start y
+				ex = obstacle[2][0] + border_size # end x
+				ey = obstacle[2][1] + border_size # end y
 
 				pygame.draw.line(self.background, self.BLACK, [sx, sy], [ex, ey])
 
 			elif obstacle[0].lower() == "c":
 				print "circle"
 
-				cx = int(obstacle[1][0]) # center x
-				cy = int(obstacle[1][1])# center y
+				cx = int(obstacle[1][0]) + border_size # center x
+				cy = int(obstacle[1][1]) + border_size # center y
 				radius = int(obstacle[2])
 
-				pygame.draw.circle(self.background, self.RED, (cx, cy), radius)
+				pygame.draw.circle(self.background, self.BLUE, (cx, cy), radius)
 
 			elif obstacle[0].lower() == "a":
 				print "arc"
 
-				x = int(obstacle[1][0]) # top left x
-				y = int(obstacle[1][1]) # top left y
+				x = int(obstacle[1][0]) + border_size # top left x
+				y = int(obstacle[1][1]) + border_size # top left y
 				diameter = int(obstacle[2]) * 2 # stored as radius
 				start_angle = obstacle[3] 
 				stop_angle = obstacle[4] 
@@ -619,8 +625,10 @@ class PlanningEnvironment(object):
 		# Start config contains x and y coordinates of robot and theta of robot config
 		# Goal config contains x and y coordinates of robot and theta of robot config
 
+		border_size = 15
+
 		pygame.init()
-		self.screen = pygame.display.set_mode((self.width, self.height), pygame.DOUBLEBUF)
+		self.screen = pygame.display.set_mode((self.width + border_size * 2, self.height + border_size * 2), pygame.DOUBLEBUF)
 		self.background = pygame.Surface(self.screen.get_size()).convert()
 		self.background.fill((255, 255, 255))
 		# self.background = self.background.convert()
@@ -629,10 +637,14 @@ class PlanningEnvironment(object):
 		self.fps = 30
 		self.playtime = 0.0
 
+
+		# draw border
+		pygame.draw.rect(self.background, self.MAROON, [border_size, border_size, self.width, self.height], 5)
+
 		print "robot start config"
-		start_robot_x = int(start_config[0][0]) # robot x
-		start_robot_y = int(start_config[0][1]) # robot y
-		start_theta = -1 * float(start_config[1])# * 180 / math.pi
+		start_robot_x = int(start_config[0][0]) + border_size # robot x
+		start_robot_y = int(start_config[0][1]) + border_size # robot y
+		start_theta = -1 * float(start_config[1]) # * 180 / math.pi
 		print "start_theta:",start_theta
 
 		# find where ID dot of robot should be to indicate orientation
@@ -645,9 +657,9 @@ class PlanningEnvironment(object):
 		pygame.draw.circle(self.background, self.BLACK, (start_theta_x, start_theta_y), self.robot_radius/4)
 
 		print "robot goal config"
-		goal_robot_x = int(goal_config[0][0]) # robot x
-		goal_robot_y = int(goal_config[0][1]) # robot y
-		goal_theta = -1 * float(goal_config[1])# * 180 / math.pi
+		goal_robot_x = int(goal_config[0][0]) + border_size # robot x
+		goal_robot_y = int(goal_config[0][1]) + border_size # robot y
+		goal_theta = -1 * float(goal_config[1]) # * 180 / math.pi
 		print "goal_theta:",goal_theta
 
 		# find where ID dot of robot should be to indicate orientation
@@ -665,41 +677,41 @@ class PlanningEnvironment(object):
 			if obstacle[0].lower() == "r":
 				print "rectangle"
 
-				x1 = obstacle[1][0] # top left x
-				y1 = obstacle[1][1] # top left y
-				x2 = obstacle[2][0] # top right x
-				y2 = obstacle[2][1] # top right y
-				x3 = obstacle[3][0] # bottom right x
-				y3 = obstacle[3][1] # bottom right y
-				x4 = obstacle[4][0] # bottom left x
-				y4 = obstacle[4][1] # bottom left y
+				x1 = obstacle[1][0] + border_size # top left x
+				y1 = obstacle[1][1] + border_size # top left y
+				x2 = obstacle[2][0] + border_size # top right x
+				y2 = obstacle[2][1] + border_size # top right y
+				x3 = obstacle[3][0] + border_size # bottom right x
+				y3 = obstacle[3][1] + border_size # bottom right y
+				x4 = obstacle[4][0] + border_size # bottom left x
+				y4 = obstacle[4][1] + border_size # bottom left y
 
 				pygame.draw.polygon(self.background, self.GREEN, ((x1, y1), (x2, y2), (x3, y3), (x4, y4)))
 
 			elif obstacle[0].lower() == "l":
 				print "line"
 
-				sx = obstacle[1][0] # start x
-				sy = obstacle[1][1] # start y
-				ex = obstacle[2][0] # end x
-				ey = obstacle[2][1] # end y
+				sx = obstacle[1][0] + border_size # start x
+				sy = obstacle[1][1] + border_size # start y
+				ex = obstacle[2][0] + border_size # end x
+				ey = obstacle[2][1] + border_size # end y
 
 				pygame.draw.line(self.background, self.BLACK, [sx, sy], [ex, ey], 4)
 
 			elif obstacle[0].lower() == "c":
 				print "circle"
 
-				cx = int(obstacle[1][0]) # center x
-				cy = int(obstacle[1][1])# center y
+				cx = int(obstacle[1][0]) + border_size # center x
+				cy = int(obstacle[1][1]) + border_size # center y
 				radius = int(obstacle[2])
 
-				pygame.draw.circle(self.background, self.RED, (cx, cy), radius)
+				pygame.draw.circle(self.background, self.BLUE, (cx, cy), radius)
 
 			elif obstacle[0].lower() == "a":
 				print "arc"
 
-				x = int(obstacle[1][0]) # top left x
-				y = int(obstacle[1][1]) # top left y
+				x = int(obstacle[1][0]) + border_size # top left x
+				y = int(obstacle[1][1]) + border_size # top left y
 				diameter = int(obstacle[2]) * 2 # stored as radius
 				start_angle = obstacle[3] 
 				stop_angle = obstacle[4] 
@@ -718,15 +730,22 @@ class PlanningEnvironment(object):
 		vertex_radius = 10
 		for node, neighbors in Vertices.items():
 			print "node",node
-			pygame.draw.circle(self.background, self.BLACK, (int(node[0]), int(node[1])), vertex_radius)
+			node_x = int(node[0]) + border_size
+			node_y = int(node[1]) + border_size
+
+			pygame.draw.circle(self.background, self.BLACK, (node_x, node_y), vertex_radius)
 
 		for edge, neighbors in Edges.items():
+			edge_x = float(edge[0]) + border_size
+			edge_y = float(edge[1]) + border_size
 			for neighbor in neighbors:
-				pygame.draw.line(self.background, self.ORANGE, [edge[0], edge[1]], [neighbor[0], neighbor[1]])
+				neighbor_x = float(neighbor[0]) + border_size
+				neighbor_y = float(neighbor[1]) + border_size
+				pygame.draw.line(self.background, self.ORANGE, [edge_x, edge_y], [neighbor_x, neighbor_y])
 
 		for state in path:
-			state_x = state[0][0]
-			state_y = state[0][1]
+			state_x = state[0][0] + border_size
+			state_y = state[0][1] + border_size
 			state_theta = -1 * state[1]
 			print "state:",state_x,state_y,state_theta
 			theta_x = int((self.robot_radius / 2) * math.cos(state_theta)) + state_x
