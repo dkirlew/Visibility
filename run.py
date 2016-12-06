@@ -10,7 +10,7 @@ from VRRTPlanner import VRRTPlanner
 from VPRMPlanner import VPRMPlanner
 
 
-def main(planner, planning_env, visualize, output, domain):
+def main(planner, planning_env, visualize, domain, planner_name):
     global height
     global width
     global robot_radius
@@ -39,7 +39,8 @@ def main(planner, planning_env, visualize, output, domain):
     planning_env.InitializePlot(Vertices, Edges, path, env_config, start_config, goal_config, name)
     # planning_env.InitializeMiniPlot(env_config, start_config, goal_config, name)
   
-    print "Time to plan with ",str(planner),": ",(time.time()-start_time)
+    print "planner:",planner_name
+    print "time to plan: ",(time.time()-start_time)
     print "construct_time:",construct_time
     print "num_nodes:",num_nodes
     print "len_path:",len_path
@@ -743,16 +744,21 @@ if __name__ == "__main__":
     planner = args.planner
     if args.planner == 'v':
         planner = VisibilityPlanner(planning_env, visualize, width, height, robot_radius)
+        planner_name = 'v'
     elif args.planner == 'rrt':
         planner = RRTPlanner(planning_env, visualize, width, height, robot_radius)
+        planner_name = 'rrt'
     elif args.planner == 'prm':
         planner = PRMPlanner(planning_env, visualize, width, height, robot_radius)
+        planner_name = 'prm'
     elif args.planner == 'vrrt':
         planner = VRRTPlanner(planning_env, visualize, width, height, robot_radius)
+        planner_name = 'vrrt'
     elif args.planner == 'vprm':
         planner = VPRMPlanner(planning_env, visualize, width, height, robot_radius)
+        planner_name = 'vprm'
     else:
         print ('Unknown planner option: %s' % args.planner)
         exit(0)
 
-    main(planner, planning_env, visualize, None, domain)
+    main(planner, planning_env, visualize, domain, planner_name)

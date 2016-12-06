@@ -583,7 +583,6 @@ class PlanningEnvironment(object):
 		for i in range(1, len(path3D)):
 			prev_node = path3D[i-1]
 			node = path3D[i]
-			node_theta = node_[1]
 
 			cost+=self.CostOfMove(prev_node, node)
 
