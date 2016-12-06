@@ -24,8 +24,6 @@ class VisibilityPlanner(object):
 		Vertices = self.GetVerticesDict(env_config)
 		Edges = {}
 		for vertex in Vertices.keys():
-
-
 			W = self.VisibleVertices(vertex, Vertices)
 			for w in W:
 				if vertex in Edges:
@@ -46,9 +44,10 @@ class VisibilityPlanner(object):
 
 
 
-		final_cost, plan, num_expansions = self.VisibilityDijkstras(Vertices, Edges)
+		len_path, plan, construct_time = self.VisibilityDijkstras(Vertices, Edges)
+		num_nodes = len(Vertices.keys()) - 2 # start and goal don't count
 
-		return Vertices, Edges, plan
+		return Vertices, Edges, plan, construct_time, num_nodes, len_path, 0
 
 
 	def GetVerticesDict(self, env_config):
@@ -650,35 +649,22 @@ class VisibilityPlanner(object):
 			expansions+=1
 			queue.sort()
 
-
-		print ("end DijkstraPlanner")
-		print("Seconds to complete DijkstraPlanner: " + str(time.time()- start_time))
-		return final_cost, self.ReconstructPath(parent, self.goal_config), expansions
+		construct_time = time.time() - start_time
+		return final_cost, self.ReconstructPath(parent, self.goal_config), construct_time
 
 
 	def GetDijsktraEdges(self, Edges):
 		dijkstra_edges = {}
 		self.AngleDict = {}
-		# print "---------------------------------------------------------------------------"
-		# print "Edges:"
-		# print Edges
-		# print "--------------------------------------------------------"
 		Edges3D = self.Get3DEdges(Edges) # dict of format [(x, y), theta] = [((x_neighbor1, y_neighbor1), theta_neighbor1]
-		# print "---------------------------------------------------------------------------"
-		# print "Edges3D:"
-		# print Edges3D
-		# print "---------------------------------------------------------------------------"
-		
-
 
 		test = ((434.55, 672.28), 4.15)
-
 
 		for edge, neighbors in Edges3D.items():
 			temp_edges = {}
 
 			for neighbor in neighbors:
-				temp_edges[neighbor] = self.CostOfMove(edge, neighbor)
+				temp_edges[neighbor] = self.planning_env.CostOfMove(edge, neighbor)
 			# print "edge in dict dict:", edge
 			dijkstra_edges[edge] = temp_edges
 
@@ -872,40 +858,6 @@ class VisibilityPlanner(object):
 			return round(relative_theta, 2)
 		else:
 			return relative_theta
-
-
-	def CostOfMove(self, edge, neighbor):
-		cost = 0
-
-		edge_x = edge[0][0]
-		edge_y = edge[0][1]
-		edge_theta = edge[1]
-		neighbor_x = neighbor[0][0]
-		neighbor_y = neighbor[0][1]
-		neighbor_theta = neighbor[1]
-
-		# print "edge:",edge
-		# print "neighbor:",neighbor
-
-		# print "edge_x:",edge_x
-		# print "edge_y:",edge_y
-		# print "edge_theta:",edge_theta
-		# print "neighbor_x:",neighbor_x
-		# print "neighbor_y:",neighbor_y
-		# print "neighbor_theta:",neighbor_theta
-
-		# euclidian distance, scaled by longest possible distance to travel - diagonal
-		if edge_theta == neighbor_theta:
-			cost = numpy.sqrt(float(numpy.square(edge_x - neighbor_x) + numpy.square(edge_y - neighbor_y)))
-			# cost/= numpy.sqrt(float(numpy.square(self.height) + numpy.square(self.width)))
-		# rotational distance, scaled by longest possible rotation - pi
-		else:
-			cost = abs(edge_theta - neighbor_theta)
-			if cost > math.pi: # take the shorter route
-				cost = 2 * math.pi - cost
-			cost/= math.pi
-			
-		return cost
 
 
 	def ReconstructPath(self, parent, current):

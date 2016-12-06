@@ -29,18 +29,23 @@ class PRMPlanner(object):
 
 		N, E = self.Learn(N, E)
 
-		P = self.Query(N, E)
+		P, construct_time = self.Query(N, E)
 
 		if P == None:
 			print "Error: graph is incomplete.  Exiting."
 			path = []
+			len_path = 0
+			if_fail = 1
 		else:
-			path = self.planning_env.Construct3DPath(P, self.start_config, self.goal_config)
+			path, len_path = self.planning_env.Construct3DPath(P, self.start_config, self.goal_config)
 			# print "N:",N
 			# print "E:",E
 			print "path3D:",path
+			if_fail = 0
 
-		return N, E, path
+		num_nodes = len(N)
+
+		return N, E, path, construct_time, num_nodes, len_path, if_fail
 
 
 	def Learn(self, N, E):
@@ -274,6 +279,7 @@ class PRMPlanner(object):
 
 
 	def Query(self, N, E):
+		start_time = time.time()
 
 		P_start = None
 		P_goal = None
@@ -291,7 +297,9 @@ class PRMPlanner(object):
 		
 		P = self.ConnectEntirePaths(P_start, P_goal, N, E)
 
-		return P
+		construct_time = time.time() - start_time
+
+		return P, construct_time
 
 	def FindConnection(self, c, N, E):
 		close_nodes = self.GetCloseNodes(c, E) #use E because need close nodes to be connected
