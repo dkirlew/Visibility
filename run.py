@@ -40,6 +40,7 @@ def main(planner, planning_env, visualize, domain, planner_name):
     # planning_env.InitializeMiniPlot(env_config, start_config, goal_config, name)
   
     print "planner:",planner_name
+    print "file name:",name
     print "time to plan: ",(time.time()-start_time)
     print "construct_time:",construct_time
     print "num_nodes:",num_nodes
