@@ -63,14 +63,17 @@ class RRTPlanner(object):
 
 
 		#RRT either found the goal or timed out
-		construct_time = time.time() - start_time
+		# construct_time = time.time() - start_time
 
 		#Check if RRT completed
 		if GoalFound == False:	
 			if_fail = 1
 			path3D = []
 			len_path = 0
+			construct_time = 0
 		else:
+
+			find_path_time = time.time()
 			if_fail = 0
 			path2D = [goal_coord];
 			while path2D[-1] != start_coord:
@@ -79,6 +82,8 @@ class RRTPlanner(object):
 				path2D.append(previous)
 			path2D.reverse();
 			path3D, len_path = self.planning_env.Construct3DPath(path2D, start_config, goal_config)
+
+			construct_time = time.time() - find_path_time
 
 
 		num_nodes = len(self.tree.Nodes2D)
