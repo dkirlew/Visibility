@@ -52,9 +52,9 @@ def main(planner, planning_env, visualize, domain, planner_name, trials):
         start_time = time.time()
         
         Vertices, Edges, path, construct_time, num_nodes, len_path, if_fail = planner.Plan(env_config, start_config, goal_config)    
+        total_time = time.time()-start_time
         planning_env.InitializePlot(Vertices, Edges, path, env_config, start_config, goal_config, name)
         # planning_env.InitializeMiniPlot(env_config, start_config, goal_config, name)
-        total_time = time.time()-start_time
         plan_time = total_time - construct_time
       
         print "planner:",planner_name
@@ -87,9 +87,9 @@ def main(planner, planning_env, visualize, domain, planner_name, trials):
                 start_time = time.time()
         
                 Vertices, Edges, path, construct_time, num_nodes, len_path, if_fail = planner.Plan(env_config, start_config, goal_config)    
+                total_time = time.time() - start_time
                 planning_env.InitializePlot(Vertices, Edges, path, env_config, start_config, goal_config, name, planner_name, i)
 
-                total_time = time.time() - start_time
                 plan_time = total_time - construct_time
 
                 print "total_time:",total_time
