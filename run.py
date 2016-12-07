@@ -15,7 +15,7 @@ def main(planner, planning_env, visualize, domain, planner_name, trials):
     global width
     global robot_radius
 
-    env_config, start, goal, name = parse_domain(domain)#numpy.array(robot.GetCurrentConfiguration())
+    env_config, start, goal, file_name = parse_domain(domain)#numpy.array(robot.GetCurrentConfiguration())
     print ("env_config:")
     for config in env_config:
         print (str(config))
@@ -53,20 +53,20 @@ def main(planner, planning_env, visualize, domain, planner_name, trials):
         
         Vertices, Edges, path, construct_time, num_nodes, len_path, if_fail = planner.Plan(env_config, start_config, goal_config)    
         total_time = time.time()-start_time
-        planning_env.InitializePlot(Vertices, Edges, path, env_config, start_config, goal_config, name)
+        planning_env.InitializePlot(Vertices, Edges, path, env_config, start_config, goal_config, file_name, planner_name)
         # planning_env.InitializeMiniPlot(env_config, start_config, goal_config, name)
         plan_time = total_time - construct_time
       
         print "planner:",planner_name
-        print "file name:",name
+        print "file name:",file_name
         print "plan_time:",plan_time
         print "num_nodes:",num_nodes
         print "len_path:",len_path
         print "if_fail:",if_fail
 
     else:
-        newfile = open(name + "trials.txt", "w") #w = write access
-        newfile.write(name + "\n")
+        newfile = open("trials" + "-" + file_name + ".txt", "w") #w = write access
+        newfile.write(file_name + "\n")
 
         planner_types = {}
         planner_types["V"] = VisibilityPlanner(planning_env, visualize, width, height, robot_radius)
@@ -88,7 +88,7 @@ def main(planner, planning_env, visualize, domain, planner_name, trials):
         
                 Vertices, Edges, path, construct_time, num_nodes, len_path, if_fail = planner.Plan(env_config, start_config, goal_config)    
                 total_time = time.time() - start_time
-                planning_env.InitializePlot(Vertices, Edges, path, env_config, start_config, goal_config, name, planner_name, i)
+                planning_env.InitializePlot(Vertices, Edges, path, env_config, start_config, goal_config, file_name, planner_name, i)
 
                 plan_time = total_time - construct_time
 
