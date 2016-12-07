@@ -10,6 +10,7 @@ class VRRTPlanner(object):
 		self.width = width
 		self.height = height
 		self.robot_radius = robot_radius
+		self.select_visible = True
 
 
 	def Plan(self, env_config, start_config, goal_config):
@@ -17,16 +18,18 @@ class VRRTPlanner(object):
 		self.goal_config = goal_config
 		self.VisibilityVertices = self.planning_env.GetVisibleVertices(env_config)
 
+		start_coord = start_config[0]
+		goal_coord = goal_config[0]	
+		self.tree = RRTTree(start_coord)
+		
+		numVV = float(len(self.VisibilityVertices))
+
 		GoalProb = 0.2
-		VertexProb = 0.2
+		VertexProb = 0
 
 		epsilon = self.robot_radius
 
-		start_coord = start_config[0]
-		goal_coord = goal_config[0]	
-
 		if self.visualize:
-			print "INitializing plot"
 			self.InitializePlot(start_coord)
 
 		self.tree = RRTTree(start_coord)
@@ -38,6 +41,9 @@ class VRRTPlanner(object):
 		run_time = time.time() - start_time
 
 		while not(GoalFound) and run_time < timeout_limit:
+			numExpanded = len(self.tree.Nodes2D)
+			if self.select_visible and numExpanded > numVV:
+				VertexProb = 1 - (numVV/numExpanded)
 			random_coord = self.GenerateRandomNode(GoalProb, VertexProb, goal_coord)
 			nearest_node = self.tree.GetNearestNode(random_coord)
 			CoordInCollision = self.planning_env.CheckPathCollision(env_config, nearest_node, random_coord)
@@ -111,6 +117,7 @@ class VRRTPlanner(object):
 				break
 
 		if all_in:
+			self.select_visible = False
 			vertex = self.GetRandCoord()
 		else:
 			MaxIndex = len(self.VisibilityVertices) - 1
