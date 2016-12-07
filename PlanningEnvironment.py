@@ -363,7 +363,6 @@ class PlanningEnvironment(object):
 				print "Unknown descriptor \"" + obstacle[0] + "\".  Expecting R, L, C, A, S, or G.  Exiting"
 				exit(0)
 				
-
 		running = True
 		while running:
 			for event in pygame.event.get():
@@ -384,7 +383,7 @@ class PlanningEnvironment(object):
 		pygame.image.save(self.background, "Images/" + name + "-" + str(time.time()) + ".jpg")
 
 
-	def InitializePlot(self, Vertices, Edges, path, env_config, start_config, goal_config, file_name, planner_name, trial_num):
+	def InitializePlot(self, Vertices, Edges, path, env_config, start_config, goal_config, file_name, planner_name, trial_num = ''):
 		# R = Rectangle, L = Line, C = Circle, A = Arc, S = Start Config, G = Goal Config
 		# Rectangle contain top left, top right, bottom right, and bottom left coordinates
 		# Line contains start and end coordinate
@@ -536,27 +535,28 @@ class PlanningEnvironment(object):
 			prev_state = state
 		
 
-		running = True
-		while running:
-			for event in pygame.event.get():
-				if event.type == pygame.QUIT:
-					running = False 
-				elif event.type == pygame.KEYDOWN:
-					if event.key == pygame.K_ESCAPE:
-						running = False
-					elif event.key == pygame.K_SPACE:
-						running = False
+		if type(trial) == int:
+			pygame.image.save(self.background, planner_name + "-" + file_name + "-" + str(trial_num) + ".jpg")
+		else:
+			running = True
+			while running:
+				for event in pygame.event.get():
+					if event.type == pygame.QUIT:
+						running = False 
+					elif event.type == pygame.KEYDOWN:
+						if event.key == pygame.K_ESCAPE:
+							running = False
+						elif event.key == pygame.K_SPACE:
+							running = False
 
-			milliseconds = self.clock.tick(self.fps)
-			self.playtime += milliseconds / 1000.0
-			# self.draw_text("FPS: {:6.3}{}PLAYTIME: {:6.3} SECONDS".format(
-						   # self.clock.get_fps(), " "*5, self.playtime))
+				milliseconds = self.clock.tick(self.fps)
+				self.playtime += milliseconds / 1000.0
+				# self.draw_text("FPS: {:6.3}{}PLAYTIME: {:6.3} SECONDS".format(
+							   # self.clock.get_fps(), " "*5, self.playtime))
 
-			pygame.display.flip()
-			self.screen.blit(self.background, (0, 0))
+				pygame.display.flip()
+				self.screen.blit(self.background, (0, 0))
 
-		pygame.image.save(self.background, planner_name + "-" + file_name + "-" + str(trial_num) + ".jpg")
-		
 
 	def Construct3DPath(self, path2D, start_config, goal_config):
 		path3D = [start_config]
