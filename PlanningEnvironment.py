@@ -535,7 +535,7 @@ class PlanningEnvironment(object):
 			prev_state = state
 		
 
-		if type(trial) == int:
+		if type(trial_num) == int:
 			pygame.image.save(self.background, planner_name + "-" + file_name + "-" + str(trial_num) + ".jpg")
 		else:
 			running = True
