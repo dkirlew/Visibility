@@ -17,7 +17,7 @@ class VPRMPlanner(object):
 		self.max_dist = numpy.sqrt(numpy.square(width) + numpy.square(height)) / 2 #TODO - arbitrary
 		self.bounce_walks = {}
 		self.vertices = None
-		self.visibility_probability = None
+		self.visibility_probability = 0
 		self.max_nodes = (self.width / (2 * self.robot_radius)) * (self.height / (2 * self.robot_radius))
 
 
@@ -524,6 +524,7 @@ class VPRMPlanner(object):
 
 		if all_in: # if all vertices are already added, get random location without sampling from visibility
 			# print "cant add GetRandomVisibilityVertex"
+			self.visibility_probability = 0
 			return self.RandomLocation(N, False)
 
 		rand_index = random.randint(0, len(self.vertices) - 1)
@@ -554,6 +555,7 @@ class VPRMPlanner(object):
 
 		if cantAdd: # if all vertices are already added or too far, get random location without sampling from visibility
 			# print "cant add GetRandomCloseVisibilityVertex"
+			self.visibility_probability = 0
 			return self.RandomCloseLocation(node, dist, N, False)
 
 		rand_index = random.randint(0, len(self.vertices) - 1)
