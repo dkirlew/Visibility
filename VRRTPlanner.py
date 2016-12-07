@@ -111,7 +111,7 @@ class VRRTPlanner(object):
 				break
 
 		if all_in:
-			vertex = GetRandCoord()
+			vertex = self.GetRandCoord()
 		else:
 			MaxIndex = len(self.VisibilityVertices) - 1
 			newVertex = False
