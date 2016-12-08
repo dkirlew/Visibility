@@ -381,7 +381,7 @@ class PlanningEnvironment(object):
 			pygame.display.flip()
 			self.screen.blit(self.background, (0, 0))
 
-		pygame.image.save(self.background, "obstacles" + str(time.time()) + ".jpg")
+			pygame.image.save(self.background, planner_name + "-" + file_name + ".jpg")
 
 
 	def InitializePlot(self, Vertices, Edges, path, env_config, start_config, goal_config, file_name, planner_name, trial_num = ''):
@@ -535,8 +535,6 @@ class PlanningEnvironment(object):
 
 			prev_state = state
 
-		pygame.image.save(self.background, "obstacles" + str(time.time()) + ".jpg")
-		
 
 		if type(trial_num) == int:
 			pygame.image.save(self.background, planner_name + "-" + file_name + "-" + str(trial_num) + ".jpg")

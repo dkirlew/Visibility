@@ -52,7 +52,7 @@ def main(planner, planning_env, visualize, domain, planner_name, trials):
         start_time = time.time()
         
         if planner_name == 'rrt' or planner_name == 'vrrt':
-            Vertices, Edges, path, construct_time, [node_nums], len_path, if_fail = planner.Plan(env_config, start_config, goal_config)
+            Vertices, Edges, path, construct_time, node_nums, len_path, if_fail = planner.Plan(env_config, start_config, goal_config)
             total_time = time.time() - start_time
             plan_time = total_time - construct_time
         elif planner_name == 'prm' or planner_name == 'vprm':
@@ -91,7 +91,6 @@ def main(planner, planning_env, visualize, domain, planner_name, trials):
 
     else:
         newfile = open("trials" + "-" + file_name + ".txt", "w") #w = write access
-        newfile.write(file_name + "\n")
 
         planner_types = {}
         planner_types["V"] = VisibilityPlanner(planning_env, visualize, width, height, robot_radius)
@@ -103,7 +102,7 @@ def main(planner, planning_env, visualize, domain, planner_name, trials):
         
         for planner_name in planner_names: # each planner
             planner = planner_types[planner_name]
-            num_trials = 50
+            num_trials = 2
             if planner_name == "V":
                 print "planner:",planner_name
                 num_trials = 1
@@ -111,11 +110,11 @@ def main(planner, planning_env, visualize, domain, planner_name, trials):
             for i in range(num_trials):
                 start_time = time.time()
 
-                if planner_name == 'rrt' or planner_name == 'vrrt':
-                    Vertices, Edges, path, construct_time, [node_nums], len_path, if_fail = planner.Plan(env_config, start_config, goal_config)
+                if planner_name == 'RRT' or planner_name == 'VRRT':
+                    Vertices, Edges, path, construct_time, node_nums, len_path, if_fail = planner.Plan(env_config, start_config, goal_config)
                     total_time = time.time() - start_time
                     plan_time = total_time - construct_time
-                elif planner_name == 'prm' or planner_name == 'vprm':
+                elif planner_name == 'PRM' or planner_name == 'VPRM':
                     Vertices, Edges, path, prm_times, num_nodes, len_path, if_fail = planner.Plan(env_config, start_config, goal_config)
                 else: 
                     Vertices, Edges, path, construct_time, num_nodes, len_path, if_fail = planner.Plan(env_config, start_config, goal_config)
@@ -129,11 +128,11 @@ def main(planner, planning_env, visualize, domain, planner_name, trials):
                 print "construct_time:",construct_time
                 print "plan_time:",plan_time
              
-                newfile.write("trial " + str(i) + "\t")
+                newfile.write(file_name + "\t" + "trial " + str(i) + "\t")
                 newfile.write(str(planner_name) + "\t")
 
 
-                if planner_name == 'prm' or planner_name == 'vprm':
+                if planner_name == 'PRM' or planner_name == 'VPRM':
                     newfile.write(str(prm_times[0]) + "\t") #total plan time
                     newfile.write(str(prm_times[1]) + "\t") #learn time
                     newfile.write(str(prm_times[2]) + "\t") #query time
@@ -145,7 +144,7 @@ def main(planner, planning_env, visualize, domain, planner_name, trials):
                     newfile.write("\t")
                     newfile.write("\t")
                     newfile.write("\t")
-                if planner_name == 'rrt' or planner_name == 'vrrt':
+                if planner_name == 'RRT' or planner_name == 'VRRT':
                     newfile.write(str(node_nums[0]) + "\t") # total num nodes
                     newfile.write(str(node_nums[1]) + "\t") # nodes reached by extension
                     newfile.write(str(node_nums[2]) + "\t") # nodes failed to reach completed
