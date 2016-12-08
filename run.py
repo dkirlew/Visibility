@@ -54,8 +54,11 @@ def main(planner, planning_env, visualize, domain, planner_name, trials):
         Vertices, Edges, path, construct_time, num_nodes, len_path, if_fail = planner.Plan(env_config, start_config, goal_config)    
         total_time = time.time()-start_time
         planning_env.InitializePlot(Vertices, Edges, path, env_config, start_config, goal_config, file_name, planner_name)
-        # planning_env.InitializeMiniPlot(env_config, start_config, goal_config, name)
+        # planning_env.InitializeMiniPlot(env_config, start_config, goal_config, file_name)
         plan_time = total_time - construct_time
+        # print "total_time:",total_time
+        # print "construct_time:",construct_time
+        # print "plan_time:",plan_time
       
         print "planner:",planner_name
         print "file name:",file_name
@@ -75,7 +78,7 @@ def main(planner, planning_env, visualize, domain, planner_name, trials):
         planner_types["VRRT"] = VRRTPlanner(planning_env, visualize, width, height, robot_radius)
         planner_types["VPRM"] = VPRMPlanner(planning_env, visualize, width, height, robot_radius)
         planner_names = ["V", "RRT", "PRM", "VRRT", "VPRM"]
-
+        
         for planner_name in planner_names: # each planner
             planner = planner_types[planner_name]
             num_trials = 50
