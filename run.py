@@ -51,19 +51,41 @@ def main(planner, planning_env, visualize, domain, planner_name, trials):
 
         start_time = time.time()
         
-        Vertices, Edges, path, construct_time, num_nodes, len_path, if_fail = planner.Plan(env_config, start_config, goal_config)    
-        total_time = time.time()-start_time
+        if planner_name == 'rrt' or planner_name == 'vrrt':
+            Vertices, Edges, path, construct_time, [node_nums], len_path, if_fail = planner.Plan(env_config, start_config, goal_config)
+            total_time = time.time() - start_time
+            plan_time = total_time - construct_time
+        elif planner_name == 'prm' or planner_name == 'vprm':
+            Vertices, Edges, path, prm_times, num_nodes, len_path, if_fail = planner.Plan(env_config, start_config, goal_config)
+        else: 
+            Vertices, Edges, path, construct_time, num_nodes, len_path, if_fail = planner.Plan(env_config, start_config, goal_config)
+            total_time = time.time() - start_time
+            plan_time = total_time - construct_time
+        
         planning_env.InitializePlot(Vertices, Edges, path, env_config, start_config, goal_config, file_name, planner_name)
         # planning_env.InitializeMiniPlot(env_config, start_config, goal_config, file_name)
-        plan_time = total_time - construct_time
         # print "total_time:",total_time
         # print "construct_time:",construct_time
         # print "plan_time:",plan_time
       
         print "planner:",planner_name
         print "file name:",file_name
-        print "plan_time:",plan_time
-        print "num_nodes:",num_nodes
+
+        if planner_name == 'prm' or planner_name == 'vprm':
+            print "total plan time:",prm_times[0]
+            print "learn time:",prm_times[1]
+            print "query time:",prm_times[2]
+            print "construct time:",prm_times[3]
+            print "expand time:",prm_times[4]
+        else:
+            print "plan_time:",plan_time
+
+        if planner_name == 'rrt' or planner_name == 'vrrt':
+            print "total num nodes:",node_nums[0]
+            print "nodes reached by extension:",node_nums[1]
+            print "nodes failed to reach completed:",node_nums[2]
+        else:
+            print "num_nodes:",num_nodes
         print "len_path:",len_path
         print "if_fail:",if_fail
 
@@ -88,12 +110,20 @@ def main(planner, planning_env, visualize, domain, planner_name, trials):
 
             for i in range(num_trials):
                 start_time = time.time()
-        
-                Vertices, Edges, path, construct_time, num_nodes, len_path, if_fail = planner.Plan(env_config, start_config, goal_config)    
-                total_time = time.time() - start_time
+
+                if planner_name == 'rrt' or planner_name == 'vrrt':
+                    Vertices, Edges, path, construct_time, [node_nums], len_path, if_fail = planner.Plan(env_config, start_config, goal_config)
+                    total_time = time.time() - start_time
+                    plan_time = total_time - construct_time
+                elif planner_name == 'prm' or planner_name == 'vprm':
+                    Vertices, Edges, path, prm_times, num_nodes, len_path, if_fail = planner.Plan(env_config, start_config, goal_config)
+                else: 
+                    Vertices, Edges, path, construct_time, num_nodes, len_path, if_fail = planner.Plan(env_config, start_config, goal_config)
+                    total_time = time.time() - start_time
+                    plan_time = total_time - construct_time
+
                 planning_env.InitializePlot(Vertices, Edges, path, env_config, start_config, goal_config, file_name, planner_name, i)
 
-                plan_time = total_time - construct_time
 
                 print "total_time:",total_time
                 print "construct_time:",construct_time
@@ -101,13 +131,33 @@ def main(planner, planning_env, visualize, domain, planner_name, trials):
              
                 newfile.write("trial " + str(i) + "\t")
                 newfile.write(str(planner_name) + "\t")
-                newfile.write(str(plan_time) + "\t")
-                newfile.write(str(num_nodes) + "\t")
+
+
+                if planner_name == 'prm' or planner_name == 'vprm':
+                    newfile.write(str(prm_times[0]) + "\t") #total plan time
+                    newfile.write(str(prm_times[1]) + "\t") #learn time
+                    newfile.write(str(prm_times[2]) + "\t") #query time
+                    newfile.write(str(prm_times[3]) + "\t") #construct time
+                    newfile.write(str(prm_times[4]) + "\t") #expand time
+                else:
+                    newfile.write(str(plan_time) + "\t")
+                    newfile.write("\t")
+                    newfile.write("\t")
+                    newfile.write("\t")
+                    newfile.write("\t")
+                if planner_name == 'rrt' or planner_name == 'vrrt':
+                    newfile.write(str(node_nums[0]) + "\t") # total num nodes
+                    newfile.write(str(node_nums[1]) + "\t") # nodes reached by extension
+                    newfile.write(str(node_nums[2]) + "\t") # nodes failed to reach completed
+                else:
+                    newfile.write(str(num_nodes) + "\t")
+                    newfile.write("\t")
+                    newfile.write("\t")
+
                 newfile.write(str(len_path) + "\t")
                 newfile.write(str(if_fail) + "\n")
 
         newfile.close()
-
          
 
 #returns env_config list = [name of env (file name), [shape1 type, shape1 info 1, ...], [shape2 type, shape2 info 1, ....], ...]

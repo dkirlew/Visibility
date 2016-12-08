@@ -24,12 +24,16 @@ class PRMPlanner(object):
 		self.start_config = start_config
 		self.goal_config = goal_config
 
-		N = []
+		N = []	
 		E = {}
 
-		N, E = self.Learn(N, E)
+		start_time = time.time()
 
-		P, construct_time = self.Query(N, E)
+		N, E, learn_time, construct_time, expand_time = self.Learn(N, E)
+
+		P, query_time = self.Query(N, E)
+
+		total_time = time.time() - start_time
 
 		if P == None:
 			print "Error: graph is incomplete.  Exiting."
@@ -45,20 +49,24 @@ class PRMPlanner(object):
 
 		num_nodes = len(N)
 
-		return N, E, path, construct_time, num_nodes, len_path, if_fail
+		return N, E, path, [total_time, learn_time, query_time, construct_time, expand_time], num_nodes, len_path, if_fail
 
 
 	def Learn(self, N, E):
-		N, E = self.Construct(N, E)
+		start_time = time.time()
+		N, E, construct_time = self.Construct(N, E)
 
-		N, E = self.Expand(N, E)
+		N, E, expand_time = self.Expand(N, E)
 
-		return N, E
+		learn_time = time.time() - start_time
+
+		return N, E, learn_time, construct_time, expand_time
 
 
 	def Construct(self, N, E):
 		# approximate number of robots that could fit in C space
 		num_nodes = 0
+		start_time = time.time()
 
 		while num_nodes < self.max_nodes:
 			c = self.RandomLocation()
@@ -93,8 +101,9 @@ class PRMPlanner(object):
 				num_nodes+=1
 			else:
 				N.append(c)
+		query_time = time.time() - start_time
 
-		return N, E
+		return N, E, query_time
 
 
 	def RandomLocation(self):
@@ -149,6 +158,7 @@ class PRMPlanner(object):
 
 
 	def Expand(self, N, E):
+		start_time = time.time()
 		weighted_nodes, max_edges = self.GetWeightedNodes(N, E)
 		num_expansions = 0
 		max_expansions = max_edges / 2
@@ -163,7 +173,9 @@ class PRMPlanner(object):
 
 			num_expansions+=1
 
-		return N, E
+		expand_time = time.time() - start_time
+
+		return N, E, expand_time
 
 
 	def GetWeightedNodes(self, N, E):
@@ -297,9 +309,9 @@ class PRMPlanner(object):
 		
 		P = self.ConnectEntirePaths(P_start, P_goal, N, E)
 
-		construct_time = time.time() - start_time
+		query_time = time.time() - start_time
 
-		return P, construct_time
+		return P, query_time
 
 	def FindConnection(self, c, N, E):
 		close_nodes = self.GetCloseNodes(c, E) #use E because need close nodes to be connected
