@@ -503,37 +503,37 @@ class PlanningEnvironment(object):
 
 			pygame.draw.circle(self.background, self.BLACK, (node_x, node_y), vertex_radius)
 
-		# for edge, neighbors in Edges.items():
-		# 	edge_x = float(edge[0]) + border_size
-		# 	edge_y = float(edge[1]) + border_size
-		# 	for neighbor in neighbors:
-		# 		neighbor_x = float(neighbor[0]) + border_size
-		# 		neighbor_y = float(neighbor[1]) + border_size
-		# 		pygame.draw.line(self.background, self.ORANGE, [edge_x, edge_y], [neighbor_x, neighbor_y], 5)
+		for edge, neighbors in Edges.items():
+			edge_x = float(edge[0]) + border_size
+			edge_y = float(edge[1]) + border_size
+			for neighbor in neighbors:
+				neighbor_x = float(neighbor[0]) + border_size
+				neighbor_y = float(neighbor[1]) + border_size
+				pygame.draw.line(self.background, self.ORANGE, [edge_x, edge_y], [neighbor_x, neighbor_y], 5)
 
-		# prev_state = None
+		prev_state = None
 
-		# for state in path:
-		# 	state_x = state[0][0] + border_size
-		# 	state_y = state[0][1] + border_size
-		# 	state_theta = -1 * state[1]
+		for state in path:
+			state_x = state[0][0] + border_size
+			state_y = state[0][1] + border_size
+			state_theta = -1 * state[1]
 
 
-		# 	if prev_state!= None:
-		# 		prev_state_x = prev_state[0][0] + border_size
-		# 		prev_state_y = prev_state[0][1] + border_size
+			if prev_state!= None:
+				prev_state_x = prev_state[0][0] + border_size
+				prev_state_y = prev_state[0][1] + border_size
 
-		# 		# line of path being followed
-		# 		pygame.draw.line(self.background, self.BLACK, [state_x, state_y], [prev_state_x, prev_state_y])
+				# line of path being followed
+				pygame.draw.line(self.background, self.BLACK, [state_x, state_y], [prev_state_x, prev_state_y])
 
-		# 	# print "state:",state_x,state_y,state_theta
-		# 	theta_x = int((self.robot_radius / 2) * math.cos(state_theta)) + state_x
-		# 	theta_y = -1 * int((self.robot_radius / 2) * math.sin(state_theta)) + state_y # inverting y because origin for pygame is at top left, origin in coordinate system is in bottom left
+			# print "state:",state_x,state_y,state_theta
+			theta_x = int((self.robot_radius / 2) * math.cos(state_theta)) + state_x
+			theta_y = -1 * int((self.robot_radius / 2) * math.sin(state_theta)) + state_y # inverting y because origin for pygame is at top left, origin in coordinate system is in bottom left
 
-		# 	pygame.draw.circle(self.background, self.PURPLE, (int(state_x), int(state_y)), self.robot_radius, 3)
-		# 	pygame.draw.circle(self.background, self.BLACK, (int(theta_x), int(theta_y)), self.robot_radius/3, 1)
+			pygame.draw.circle(self.background, self.PURPLE, (int(state_x), int(state_y)), self.robot_radius, 3)
+			pygame.draw.circle(self.background, self.BLACK, (int(theta_x), int(theta_y)), self.robot_radius/3, 1)
 
-		# 	prev_state = state
+			prev_state = state
 
 		pygame.image.save(self.background, "obstacles" + str(time.time()) + ".jpg")
 		
