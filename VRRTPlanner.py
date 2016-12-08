@@ -100,6 +100,8 @@ class VRRTPlanner(object):
 		Vertices = self.tree.Nodes2D
 		Edges = self.tree.NodeParent
 
+		NodeStats = [num_nodes, self.num_extended_pass, self.num_extended_fail]
+
 		return Vertices, Edges, path3D, construct_time, NodeStats, len_path, if_fail
 
 
