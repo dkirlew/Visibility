@@ -55,7 +55,10 @@ class VRRTPlanner(object):
 				new_coord = self.ExtendTowardsCoord(nearest_node, random_coord)
 				InCollision = self.planning_env.CheckPathCollision(env_config, nearest_node, new_coord)
 				if InCollision:
+					self.num_extended_fail += 1
 					continue
+				else:
+					self.num_extended_pass += 1
 
 			self.tree.AddEdge(nearest_node, new_coord)
 			if self.visualize:
@@ -95,7 +98,7 @@ class VRRTPlanner(object):
 		Vertices = self.tree.Nodes2D
 		Edges = self.tree.NodeParent
 
-		return Vertices, Edges, path3D, construct_time, num_nodes, len_path, if_fail
+		return Vertices, Edges, path3D, construct_time, NodeStats, len_path, if_fail
 
 
 	def GenerateRandomNode(self, GoalProb, VertexProb, goal_coord):

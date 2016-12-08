@@ -10,6 +10,8 @@ class RRTPlanner(object):
 		self.width = width
 		self.height = height
 		self.robot_radius = robot_radius
+		self.num_extended_fail = 0
+		self.num_extended_pass = 0
 
 
 	def Plan(self, env_config, start_config, goal_config):
@@ -47,7 +49,10 @@ class RRTPlanner(object):
 				new_coord = self.ExtendTowardsCoord(nearest_node, random_coord)
 				InCollision = self.planning_env.CheckPathCollision(env_config, nearest_node, new_coord)
 				if InCollision:
+					self.num_extended_fail += 1
 					continue
+				else:
+					self.num_extended_pass += 1
 
 			self.tree.AddEdge(nearest_node, new_coord)
 			self.PlotEdge(nearest_node, new_coord)
@@ -89,8 +94,9 @@ class RRTPlanner(object):
 		num_nodes = len(self.tree.Nodes2D)
 		Vertices = self.tree.Nodes2D
 		Edges = self.tree.NodeParent
+		NodeStats = [num_nodes, self.num_extended_pass, self.num_extended_fail]
 
-		return Vertices, Edges, path3D, construct_time, num_nodes, len_path, if_fail
+		return Vertices, Edges, path3D, construct_time, NodeStats, len_path, if_fail
 
 
 	def GenerateRandomNode(self, GoalProb, goal_coord):
