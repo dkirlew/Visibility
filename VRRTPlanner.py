@@ -11,6 +11,8 @@ class VRRTPlanner(object):
 		self.height = height
 		self.robot_radius = robot_radius
 		self.select_visible = True
+		self.num_extended_pass = 0
+		self.num_extended_fail = 0
 
 
 	def Plan(self, env_config, start_config, goal_config):
