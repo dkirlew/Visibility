@@ -102,7 +102,7 @@ def main(planner, planning_env, visualize, domain, planner_name, trials):
         
         for planner_name in planner_names: # each planner
             planner = planner_types[planner_name]
-            num_trials = 2
+            num_trials = 50
             if planner_name == "V":
                 print "planner:",planner_name
                 num_trials = 1
